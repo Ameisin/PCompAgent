@@ -1,5 +1,6 @@
 import streamlit as st
-from src.responder import responder
+
+from src.response import response
 
 st.set_page_config(page_title="RAG PC Builder", page_icon="🖥️")
 
@@ -15,28 +16,28 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 # Entrada del usuario
-pregunta = st.chat_input("Pregunta sobre componentes o compatibilidad...")
+question = st.chat_input("Pregunta sobre componentes o compatibilidad...")
 
-if pregunta:
+if question:
     # Mostrar mensaje del usuario
-    st.session_state.messages.append({"role": "user", "content": pregunta})
+    st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
-        st.markdown(pregunta)
+        st.markdown(question)
 
     # Llamar a tu API interna
-    resultado = responder(pregunta)
+    result = response(question)
 
-    respuesta = resultado["respuesta"]
-    chunks = resultado["chunks"]
-    modelo = resultado["modelo"]
-    k = resultado["k"]
-    num_chunks = resultado["num_chunks"]
-    tiempo_ms = resultado["tiempo_ms"]
-    abstencion = resultado.get("abstencion", False)
+    answer = result["respuesta"]
+    chunks = result["chunks"]
+    model = result["modelo"]
+    k = result["k"]
+    num_chunks = result["num_chunks"]
+    time_ms = result["tiempo_ms"]
+    abstencion = result.get("abstencion", False)
 
     # Mostrar respuesta del agente
     with st.chat_message("assistant"):
-        st.markdown(respuesta)
+        st.markdown(answer)
 
         # Mostrar contexto recuperado
         st.subheader("🔍 Chunks recuperados")
@@ -51,12 +52,12 @@ if pregunta:
         # Métricas
         st.subheader("📊 Métricas")
         st.markdown(f"""
-        - **Modelo:** {modelo}  
+        - **Modelo:** {model}  
         - **Top‑K:** {k}  
         - **Chunks usados:** {num_chunks}  
-        - **Tiempo:** {tiempo_ms} ms  
+        - **Tiempo:** {time_ms} ms  
         - **Abstención:** {"Sí" if abstencion else "No"}  
         """)
 
     # Guardar respuesta en historial
-    st.session_state.messages.append({"role": "assistant", "content": respuesta})
+    st.session_state.messages.append({"role": "assistant", "content": answer})
