@@ -24,7 +24,7 @@ from google import genai
 
 from config import COLLECTION_NAME, TOP_K
 from embed import embeddear_consulta
-from gemini_auth import configurar_gemini_api_key
+from gemini_auto import configurar_gemini_api_key
 from index import obtener_cliente_chroma, obtener_coleccion
 
 
