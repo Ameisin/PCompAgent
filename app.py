@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 
 from src.response import response
@@ -51,13 +52,17 @@ if question:
 
         # Métricas
         st.subheader("📊 Métricas")
-        st.markdown(f"""
-        - **Modelo:** {model}  
-        - **Top‑K:** {k}  
-        - **Chunks usados:** {num_chunks}  
-        - **Tiempo:** {time_ms} ms  
-        - **Abstención:** {"Sí" if abstencion else "No"}  
-        """)
+
+        metricas = {
+            "Modelo": [model],
+            "Top‑K": [k],
+            "Chunks usados": [num_chunks],
+            "Tiempo (ms)": [time_ms],
+            "Abstención": ["Sí" if abstencion else "No"]
+        }
+
+        df_metricas = pd.DataFrame(metricas)
+        st.table(df_metricas)
 
     # Guardar respuesta en historial
     st.session_state.messages.append({"role": "assistant", "content": answer})
