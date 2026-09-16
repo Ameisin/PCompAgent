@@ -8,13 +8,14 @@ Flujo:
 import json
 
 import chromadb
+from chromadb.api import ClientAPI
 
 from config import (
     CHROMA_DIR,
     COLLECTION_NAME,
-    EMBEDDING_MODEL,
+    GEMINI_EMBEDDING_MODEL,
     EMBEDDINGS_JSON,
-    INDEX_BATCH_SIZE,
+    EMBED_BATCH_SIZE,
 )
 
 
@@ -47,7 +48,7 @@ def cargar_embeddings_json() -> tuple[list[dict], str]:
             f"No existe {EMBEDDINGS_JSON}. Ejecuta antes: python main.py --prepare"
         )
     data = json.loads(EMBEDDINGS_JSON.read_text(encoding="utf-8"))
-    modelo = data.get("embedding_model", EMBEDDING_MODEL)
+    modelo = data.get("embedding_model", GEMINI_EMBEDDING_MODEL)
     return data.get("items", []), modelo
 
 
@@ -62,7 +63,7 @@ def _generar_id(item: dict, indice: int) -> str:
     return f"chunk_{chunk_index}"
 
 
-def obtener_cliente_chroma() -> chromadb.PersistentClient:
+def obtener_cliente_chroma() -> ClientAPI:
     """Cliente Chroma que guarda el índice en disco (CHROMA_DIR).
 
     Pasos:
@@ -77,7 +78,7 @@ def obtener_cliente_chroma() -> chromadb.PersistentClient:
 
 
 def obtener_coleccion(
-    client: chromadb.PersistentClient,
+    client: ClientAPI,
     crear: bool = True,
 ) -> chromadb.Collection:
     """Abre o crea la colección. Métrica: coseno (hnsw:space=cosine).
@@ -109,7 +110,7 @@ def obtener_coleccion(
     return client.get_collection(name=COLLECTION_NAME)
 
 
-def borrar_coleccion(client: chromadb.PersistentClient) -> None:
+def borrar_coleccion(client: ClientAPI) -> None:
     """Elimina la colección (útil con --recreate-index).
 
     Si indexas dos veces sin borrar, puedes duplicar ids o mezclar estados.
@@ -174,8 +175,8 @@ def ejecutar_indexacion(recreate: bool = False) -> int:
     print(f"Indexando {len(ids)} vectores en '{COLLECTION_NAME}' ...")
 
     # 5) Insertar en lotes para no saturar memoria con corpora grandes
-    for inicio in range(0, len(ids), INDEX_BATCH_SIZE):
-        fin = inicio + INDEX_BATCH_SIZE
+    for inicio in range(0, len(ids), EMBED_BATCH_SIZE):
+        fin = inicio + EMBED_BATCH_SIZE
         collection.add(
             ids=ids[inicio:fin],
             embeddings=embeddings[inicio:fin],
