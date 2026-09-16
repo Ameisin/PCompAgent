@@ -10,6 +10,9 @@ Reglas:
 - No inventes respuestas a preguntas ajenas al dominio (p. ej. geografía general).
 """
 
+#------------------------------------------------------------------------------------------------
+# PROMPT OPTIMIZADO PARA EL LLM
+#------------------------------------------------------------------------------------------------
 
 def build_rag_prompt(contexto: str, pregunta: str) -> str:
     """Ensambla el prompt completo para el LLM."""

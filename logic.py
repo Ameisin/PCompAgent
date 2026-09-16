@@ -11,6 +11,11 @@ from prompt import build_rag_prompt
 from retrieve import recuperar
 
 
+# ---------------------------------------------------------------------------
+# EXTRAIDO DE LAS FUENTES DE INFROMACION 
+# ---------------------------------------------------------------------------
+
+
 def _extraer_fuentes(chunks: list[dict]) -> list[str]:
     fuentes: list[str] = []
     vistos: set[str] = set()
@@ -22,6 +27,14 @@ def _extraer_fuentes(chunks: list[dict]) -> list[str]:
             fuentes.append(nombre)
     return fuentes
 
+
+
+
+# ---------------------------------------------------------------------------
+# RESPUESTA DEL LLM
+# ---------------------------------------------------------------------------
+
+# En este metodo sacamos las respuesta de gemini con todos los limitantes que hemos puesto.
 
 def responder(pregunta: str, top_k: int | None = None) -> dict:
     """Pipeline: retrieve → prompt → generate."""
