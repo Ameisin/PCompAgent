@@ -83,7 +83,8 @@ ESTRATEGIA_CHUNKING = os.getenv("ESTRATEGIA_CHUNKING", "markdown_headers")
 ## "gemini" (camino principal del bootcamp, requiere GEMINI_API_KEY)
 ## "huggingface" (sentence-transformers en local, sin API key)
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "gemini").lower()
-
+GEMINI_MODEL = "gemini-3-flash-preview"
+GENERATION_TEMPERATURE = 0.3
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
 GEMINI_EMBEDDING_DIM = 768        ## gemini-embedding-001 admite 768/1536/3072 (MRL)
 HF_EMBEDDING_MODEL = os.getenv(
