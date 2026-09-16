@@ -130,6 +130,11 @@ PALABRAS_CLAVE_CATEGORIA = {
     "videojuego": ["juego", "videojuego", "requisitos", "jugar", "fps"],
 }
 
+## ---------------------------------------------------------------------------
+## EVALUACION
+## ---------------------------------------------------------------------------
+
+QUERIES_EVAL_JSON = Path(__file__).parent / "queries" / "preguntas_eval.json"
 
 def ruta_corta(ruta: Path) -> str: ## Ruta relativa al proyecto para logs ('output/chunks.json'); absoluta si está fuera.
     try:
