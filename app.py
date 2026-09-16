@@ -5,6 +5,24 @@ from src.response import response
 
 st.set_page_config(page_title="RAG PC Builder", page_icon="🖥️")
 
+st.sidebar.title("⚙️ Configuración")
+
+model_choice = st.sidebar.selectbox(
+    "Modelo de generación",
+    ["mock-model-v0", "gemini-1.5-flash", "gemini-1.5-pro"],
+    index=0
+)
+
+top_k = st.sidebar.slider("Top‑K (chunks recuperados)", 1, 10, 3)
+
+debug_mode = st.sidebar.checkbox("Modo debug", value=False)
+
+if st.sidebar.button("🧹 Limpiar historial"):
+    st.session_state.messages = []
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**RAG PC Builder — Bootcamp The Bridge**")
+
 st.title("🖥️ Asistente RAG — Montaje y compatibilidad de PC")
 
 # Inicializar historial
