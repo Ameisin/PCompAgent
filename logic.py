@@ -4,7 +4,6 @@ De aqui sacamos la respuesta del LLM y los demas stats.
 """
 
 from pathlib import Path
-
 from context import formatear_contexto
 from generate_rep import generar_respuesta
 from prompt import build_rag_prompt
