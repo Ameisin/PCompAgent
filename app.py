@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from src.response import response
+from response import response
 
 st.set_page_config(page_title="RAG PC Builder", page_icon="🖥️")
 
@@ -52,8 +52,7 @@ if question:
     k = result["k"]
     num_chunks = result["num_chunks"]
     time_ms = result["tiempo_ms"]
-    abstencion = result.get("abstencion", False)
-
+    
     # Mostrar respuesta del agente
     with st.chat_message("assistant"):
         st.markdown(answer)
@@ -75,8 +74,7 @@ if question:
             "Modelo": [model],
             "Top‑K": [k],
             "Chunks usados": [num_chunks],
-            "Tiempo (ms)": [time_ms],
-            "Abstención": ["Sí" if abstencion else "No"]
+            "Tiempo (ms)": [time_ms]
         }
 
         df_metricas = pd.DataFrame(metricas)

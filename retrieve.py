@@ -94,7 +94,7 @@ def recuperar(pregunta: str, top_k: int | None = None) -> list[dict]:
     # 2) Misma API / mismo modelo de embedding que al indexar (Sprint 8)
     configurar_gemini_api_key()
     client = genai.Client()
-    vector = embed_consulta(client, pregunta)
+    vector = embed_consulta(pregunta)
 
     # 3) Abrir el índice ya existente (crear=False → no inventar colección vacía)
     chroma = obtener_cliente_chroma()
