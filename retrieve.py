@@ -13,7 +13,6 @@ Flujo online (esto es el “motor” de un RAG, sin generación todavía):
 """
 
 from google import genai
-
 from config import COLLECTION_NAME, TOP_K
 from embed import embed_consulta
 from gemini_auto import configurar_gemini_api_key

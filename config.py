@@ -108,7 +108,9 @@ def nombre_modelo_embedding() -> str:
 ## Retrieval
 ## ---------------------------------------------------------------------------
 TOP_K = 5                  ## chunks que se recuperan por defecto
-TOP_K_MAX = 20             ## tope de seguridad para --k
+TOP_K_MAX = 20 
+TOP_K_CANDIDATES = [1, 3, 5]
+## tope de seguridad para --k
 LONGITUD_MAX_PREGUNTA = 500  ## caracteres; más largo -> se rechaza sin llamar a la API
 K_EVALUACION = [1, 3, 5]   ## barrido de K en la evaluación de retrieval
 
@@ -135,6 +137,13 @@ PALABRAS_CLAVE_CATEGORIA = {
 ## ---------------------------------------------------------------------------
 
 QUERIES_EVAL_JSON = Path(__file__).parent / "queries" / "preguntas_eval.json"
+
+## ---------------------------------------------------------------------------
+## VERIFICACION
+## ---------------------------------------------------------------------------
+
+ENTREGABLES_DIR = Path(__file__).parent / "entregables"
+
 
 def ruta_corta(ruta: Path) -> str: ## Ruta relativa al proyecto para logs ('output/chunks.json'); absoluta si está fuera.
     try:
