@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from response import response
+from logic import responder
 
 st.set_page_config(page_title="RAG PC Builder", page_icon="🖥️")
 
@@ -44,7 +44,7 @@ if question:
         st.markdown(question)
 
     # Llamar a tu API interna
-    result = response(question)
+    result = responder(question)
 
     answer = result["respuesta"]
     chunks = result["chunks"]
