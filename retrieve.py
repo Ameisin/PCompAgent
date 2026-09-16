@@ -10,20 +10,12 @@ Flujo online (esto es el “motor” de un RAG, sin generación todavía):
   2. collection.query() busca los vectores más cercanos (distancia coseno).
   3. Devolver texto + metadata + distance de cada hit.
 
-Función a completar:
-  - recuperar(pregunta, top_k)
-
-Helpers ya dados:
-  - _log_retrieval, _resultados_a_chunks, _imprimir_hits
-  - embeddear_consulta (en embed.py), obtener_cliente/colección (en index.py)
-
-Prueba: python main.py --query "¿Qué mide la magnitud 83?"
 """
 
 from google import genai
 
 from config import COLLECTION_NAME, TOP_K
-from embed import embeddear_consulta
+from embed import embed_consulta
 from gemini_auto import configurar_gemini_api_key
 from index import obtener_cliente_chroma, obtener_coleccion
 
@@ -73,8 +65,6 @@ def recuperar(pregunta: str, top_k: int | None = None) -> list[dict]:
     Entrada: texto de la pregunta y cuántos chunks devolver (TOP_K por defecto).
     Salida: lista ordenada por similitud (menor distance = más parecido).
 
-    En Sprint 10, estos chunks se meterán en el prompt del LLM.
-
     Pasos:
       1. k = top_k if top_k is not None else TOP_K
          → Valida k >= 1; llama _log_retrieval(pregunta, k).
@@ -104,7 +94,7 @@ def recuperar(pregunta: str, top_k: int | None = None) -> list[dict]:
     # 2) Misma API / mismo modelo de embedding que al indexar (Sprint 8)
     configurar_gemini_api_key()
     client = genai.Client()
-    vector = embeddear_consulta(client, pregunta)
+    vector = embed_consulta(client, pregunta)
 
     # 3) Abrir el índice ya existente (crear=False → no inventar colección vacía)
     chroma = obtener_cliente_chroma()
