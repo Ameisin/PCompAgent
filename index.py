@@ -1,23 +1,8 @@
-"""Indexación de embeddings.json en ChromaDB — Sprint 9 (Fase 1).
-
-Objetivo didáctico
-------------------
-En Sprint 8 generaste vectores y los guardaste en un JSON. Eso aún no es un
-índice de búsqueda: aquí los cargas en ChromaDB para poder hacer similarity
-search (Fase 2).
+"""Indexación de embeddings.json en ChromaDB 
 
 Flujo:
   embeddings.json  →  collection.add()  →  output/chroma_db/
-
-Funciones a completar:
-  - obtener_cliente_chroma()
-  - obtener_coleccion()
-  - ejecutar_indexacion()
-
-Helpers ya dados (no los reescribas):
-  - _sanitizar_metadata, cargar_embeddings_json, _generar_id, borrar_coleccion
-
-Prueba: python main.py --index
+  
 """
 
 import json

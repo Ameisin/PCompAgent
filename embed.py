@@ -18,8 +18,9 @@ import hashlib
 import json
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
+from typing import Any, cast
 
 from langchain_core.documents import Document
 
@@ -40,7 +41,7 @@ def _cliente():
     if _cliente_gemini is None:
         from google import genai
 
-        from src.gemini_auth import configurar_gemini_api_key
+        from gemini_auto import configurar_gemini_api_key
 
         configurar_gemini_api_key()
         _cliente_gemini = genai.Client()
@@ -55,13 +56,19 @@ def _embed_gemini_lote(textos: list[str], tipo_tarea: str) -> list[list[float]]:
         try:
             result = cliente.models.embed_content(
                 model=config.GEMINI_EMBEDDING_MODEL,
-                contents=textos,
+                contents=cast(Any, textos),
                 config=types.EmbedContentConfig(
                     task_type=tipo_tarea,
                     output_dimensionality=config.GEMINI_EMBEDDING_DIM,
                 ),
             )
-            return [list(e.values) for e in result.embeddings]
+            embeddings = result.embeddings or []
+            vectores: list[list[float]] = []
+            for embedding in embeddings:
+                values = embedding.values
+                if values is not None:
+                    vectores.append(list(values))
+            return vectores
         except Exception as exc:  # noqa: BLE001 - la API lanza tipos distintos según el error
             mensaje = str(exc)
             transitorio = any(s in mensaje for s in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "timeout"))
