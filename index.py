@@ -9,13 +9,12 @@ import json
 
 import chromadb
 from chromadb.api import ClientAPI
-
 from config import (
     CHROMA_DIR,
     COLLECTION_NAME,
-    GEMINI_EMBEDDING_MODEL,
-    EMBEDDINGS_JSON,
     EMBED_BATCH_SIZE,
+    EMBEDDINGS_JSON,
+    GEMINI_EMBEDDING_MODEL,
 )
 
 
@@ -119,7 +118,7 @@ def borrar_coleccion(client: ClientAPI) -> None:
     try:
         client.delete_collection(COLLECTION_NAME)
         print(f"  Colección '{COLLECTION_NAME}' eliminada.")
-    except Exception:
+    except ValueError:
         print(f"  Colección '{COLLECTION_NAME}' no existía.")
 
 

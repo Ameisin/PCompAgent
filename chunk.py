@@ -12,10 +12,9 @@ from __future__ import annotations
 
 import logging
 
+import config
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-import config
 
 logger = logging.getLogger(__name__)
 

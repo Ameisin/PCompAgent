@@ -1,9 +1,8 @@
 """Generación de respuestas con Gemini """
 
-from google import genai
-
 from config import GEMINI_MODEL, GENERATION_TEMPERATURE
 from gemini_auto import configurar_gemini_api_key
+from google import genai
 
 
 def generar_respuesta(prompt: str) -> str:
