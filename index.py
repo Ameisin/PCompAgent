@@ -6,6 +6,7 @@ Flujo:
 """
 
 import json
+from typing import Any, cast
 
 import chromadb
 from chromadb.api import ClientAPI
@@ -178,9 +179,9 @@ def ejecutar_indexacion(recreate: bool = False) -> int:
         fin = inicio + EMBED_BATCH_SIZE
         collection.add(
             ids=ids[inicio:fin],
-            embeddings=embeddings[inicio:fin],
+            embeddings=cast(Any, embeddings[inicio:fin]),
             documents=documents[inicio:fin],
-            metadatas=metadatas[inicio:fin],
+            metadatas=cast(Any, metadatas[inicio:fin]),
         )
 
     # 6) Comprobar cuántos documentos quedaron en el índice

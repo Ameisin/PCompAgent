@@ -271,7 +271,7 @@ def _fila_disipador(r) -> tuple[str, dict]: ## Para cada modelo de disipador rec
         "" if _es_nulo(r["noise_level"]) else f"Ruido {_rango(r['noise_level'], 'dB')}.",
         "" if _es_nulo(r["color"]) else f"Color {r['color']}.",
     ])
-    meta = {"tipo_refrigeracion": "liquida" if liquida else "aire"}
+    meta: dict[str, object] = {"tipo_refrigeracion": "liquida" if liquida else "aire"}
     if liquida:
         meta["radiador_mm"] = int(float(r["size"]))
     return texto, meta
