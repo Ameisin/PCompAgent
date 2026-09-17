@@ -6,6 +6,7 @@ Flujo:
 """
 
 import json
+from typing import Any, cast
 
 import chromadb
 from chromadb.api import ClientAPI
@@ -13,9 +14,9 @@ from chromadb.api import ClientAPI
 from config import (
     CHROMA_DIR,
     COLLECTION_NAME,
-    GEMINI_EMBEDDING_MODEL,
-    EMBEDDINGS_JSON,
     EMBED_BATCH_SIZE,
+    EMBEDDINGS_JSON,
+    GEMINI_EMBEDDING_MODEL,
 )
 
 
@@ -179,9 +180,9 @@ def ejecutar_indexacion(recreate: bool = False) -> int:
         fin = inicio + EMBED_BATCH_SIZE
         collection.add(
             ids=ids[inicio:fin],
-            embeddings=embeddings[inicio:fin],
+            embeddings=cast(Any, embeddings[inicio:fin]),
             documents=documents[inicio:fin],
-            metadatas=metadatas[inicio:fin],
+            metadatas=cast(Any, metadatas[inicio:fin]),
         )
 
     # 6) Comprobar cuántos documentos quedaron en el índice
