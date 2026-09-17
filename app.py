@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import config as cfg
 
 from logic import responder
 
@@ -9,7 +10,7 @@ st.sidebar.title("⚙️ Configuración")
 
 model_choice = st.sidebar.selectbox(
     "Modelo de generación",
-    ["mock-model-v0", "gemini-1.5-flash", "gemini-1.5-pro"],
+    ["gemini-1.5-flash", "gemini-1.5-pro"],
     index=0
 )
 
@@ -44,13 +45,13 @@ if question:
         st.markdown(question)
 
     # Llamar a tu API interna
-    result = responder(question)
+    result = responder(question, top_k)
 
     answer = result["respuesta"]
     chunks = result["chunks"]
-    model = result["modelo"]
-    k = result["k"]
-    num_chunks = result["num_chunks"]
+    model = cfg.nombre_modelo_embedding()
+    k = top_k
+    num_chunks = len(chunks)
     time_ms = result["tiempo_ms"]
     
     # Mostrar respuesta del agente
@@ -58,14 +59,17 @@ if question:
         st.markdown(answer)
 
         # Mostrar contexto recuperado
-        st.subheader("🔍 Chunks recuperados")
-        for ch in chunks:
-            st.markdown(f"""
-            **Fuente:** `{ch['source']}`  
-            ```
-            {ch['texto']}
-            ```
-            """)
+        st.subheader("🔍 Chunks recuperados:")
+        for i, chunk in enumerate(chunks, start=1):
+            source = chunk.get("metadata", {}).get("source", "?")
+            dist = chunk.get("distance")
+            dist_txt = f"{dist:.4f}" if dist is not None else "n/a"
+            st.markdown(f"**Chunk #{i}** (source: {source}, distance: {dist_txt})")
+            st.markdown(f"```\n{chunk['text']}\n```")
+
+        st.subheader("Fuentes de información:")
+        for fuente in result["fuentes"]:
+            st.markdown(f"- {fuente}")
 
         # Métricas
         st.subheader("📊 Métricas")

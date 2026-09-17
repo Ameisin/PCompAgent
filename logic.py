@@ -8,6 +8,7 @@ from context import formatear_contexto
 from generate_rep import generar_respuesta
 from prompt import build_rag_prompt
 from retrieve import recuperar
+import time
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ def _extraer_fuentes(chunks: list[dict]) -> list[str]:
 # En este metodo sacamos las respuesta de gemini con todos los limitantes que hemos puesto.
 
 def responder(pregunta: str, top_k: int | None = None) -> dict:
+    start_time = int(time.time() * 1000)
     """Pipeline: retrieve → prompt → generate."""
     if not (pregunta or "").strip():
         return {
@@ -57,4 +59,5 @@ def responder(pregunta: str, top_k: int | None = None) -> dict:
         "chunks": chunks,
         "fuentes": _extraer_fuentes(chunks),
         "error": None,
+        "tiempo_ms": time.time() - start_time
     }

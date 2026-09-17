@@ -10,6 +10,7 @@ from typing import Any, cast
 
 import chromadb
 from chromadb.api import ClientAPI
+
 from config import (
     CHROMA_DIR,
     COLLECTION_NAME,
