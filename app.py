@@ -10,13 +10,14 @@ st.sidebar.title("⚙️ Configuración")
 
 model_choice = st.sidebar.selectbox(
     "Modelo de generación",
-    ["gemini-1.5-flash", "gemini-1.5-pro"],
+    ["gemini-3.5-flash-lite", "gemini-3.1-pro-preview", "gemini-3.8-flash" ],
     index=0
 )
 
 top_k = st.sidebar.slider("Top‑K (chunks recuperados)", 1, 10, 3)
 
-debug_mode = st.sidebar.checkbox("Modo debug", value=False)
+temperature = st.sidebar.slider("Temperatura de generación", 0.0, 1.0, 0.7, 0.1)
+
 
 if st.sidebar.button("🧹 Limpiar historial"):
     st.session_state.messages = []
@@ -45,12 +46,10 @@ if question:
         st.markdown(question)
 
     # Llamar a tu API interna
-    result = responder(question, top_k)
+    result = responder(question, top_k, model_choice, temperature)
 
     answer = result["respuesta"]
     chunks = result["chunks"]
-    model = cfg.nombre_modelo_embedding()
-    k = top_k
     num_chunks = len(chunks)
     time_ms = result["tiempo_ms"]
     
@@ -75,8 +74,8 @@ if question:
         st.subheader("📊 Métricas")
 
         metricas = {
-            "Modelo": [model],
-            "Top‑K": [k],
+            "Modelo": [model_choice or cfg.DEFAULT_GEMINI_MODEL],
+            "Temperatura": [temperature],
             "Chunks usados": [num_chunks],
             "Tiempo (ms)": [time_ms]
         }

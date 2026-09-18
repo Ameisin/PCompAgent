@@ -83,10 +83,10 @@ ESTRATEGIA_CHUNKING = os.getenv("ESTRATEGIA_CHUNKING", "markdown_headers")
 ## "gemini" (camino principal del bootcamp, requiere GEMINI_API_KEY)
 ## "huggingface" (sentence-transformers en local, sin API key)
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "gemini").lower()
-GEMINI_MODEL = "gemini-3-flash-preview"
-GENERATION_TEMPERATURE = 0.3
-GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
-GEMINI_EMBEDDING_DIM = 768        ## gemini-embedding-001 admite 768/1536/3072 (MRL)
+DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
+DEFAULT_GENERATION_TEMPERATURE = 0.3
+DEFAULT_GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+DEFAULT_GEMINI_EMBEDDING_DIM = 768        ## gemini-embedding-001 admite 768/1536/3072 (MRL)
 HF_EMBEDDING_MODEL = os.getenv(
     "HF_EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
@@ -99,7 +99,7 @@ EMBED_ESPERA_BASE_S = 2.0         ## backoff exponencial: 2, 4, 8, 16, 32 s
 def nombre_modelo_embedding() -> str:
     """Identificador del modelo activo (se guarda en la colección Chroma)."""
     if EMBEDDING_PROVIDER == "gemini":
-        return f"gemini:{GEMINI_EMBEDDING_MODEL}:{GEMINI_EMBEDDING_DIM}"
+        return f"gemini:{DEFAULT_GEMINI_EMBEDDING_MODEL}:{DEFAULT_GEMINI_EMBEDDING_DIM}"
     if EMBEDDING_PROVIDER == "huggingface":
         return f"huggingface:{HF_EMBEDDING_MODEL}"
     raise ValueError(f"EMBEDDING_PROVIDER no soportado: {EMBEDDING_PROVIDER!r}")
