@@ -3,13 +3,13 @@
 De aqui sacamos la respuesta del LLM y los demas stats.
 """
 
+import time
 from pathlib import Path
+
 from context import formatear_contexto
 from generate_rep import generar_respuesta
 from prompt import build_rag_prompt
 from retrieve import recuperar
-import time
-
 
 # ---------------------------------------------------------------------------
 # EXTRAIDO DE LAS FUENTES DE INFROMACION 
@@ -39,6 +39,8 @@ def _extraer_fuentes(chunks: list[dict]) -> list[str]:
 def responder(pregunta: str, top_k: int | None = None, modelo: str | None = None, temperatura: float | None = None, dimension_embedding: int | None = None) -> dict:
     start_time = int(time.time() * 1000)
     """Pipeline: retrieve → prompt → generate."""
+    inicio = time.perf_counter()
+
     if not (pregunta or "").strip():
         return {
             "respuesta": "",
@@ -46,6 +48,7 @@ def responder(pregunta: str, top_k: int | None = None, modelo: str | None = None
             "chunks": [],
             "fuentes": [],
             "error": "La pregunta no puede estar vacía.",
+            "tiempo_ms": 0,
         }
 
     chunks = recuperar(pregunta.strip(), top_k=top_k)

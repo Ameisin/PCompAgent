@@ -16,7 +16,7 @@ load_dotenv()  ## lee .env si existe (nunca se sube al repo)
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CSV_DIR = DATA_DIR / "csv"          ## componentes + videojuegos (formato 1: CSV)
-DOCS_DIR = DATA_DIR / "docs"        ## guías en Markdown/TXT/PDF (formato 2: texto)
+DOCS_DIR = DATA_DIR / "md"        ## guías en Markdown/TXT/PDF (formato 2: texto)
 QUERIES_DIR = BASE_DIR / "queries"
 
 OUTPUT_DIR = BASE_DIR / "output"    ## artefactos generados (gitignored)
@@ -36,17 +36,17 @@ COLLECTION_NAME = "pc_gaming"
 ## nombre de fichero -> (slug de categoría para metadatos/filtros, nombre en español)
 CATEGORIAS_CSV = {
     "cpu.csv": ("cpu", "Procesador"),
-    "videocard.csv": ("gpu", "Tarjeta gráfica"),
+    "video-card.csv": ("gpu", "Tarjeta gráfica"),
     "motherboard.csv": ("placa_base", "Placa base"),
     "memory.csv": ("ram", "Memoria RAM"),
-    "internalharddrive.csv": ("almacenamiento", "Almacenamiento"),
-    "powersupply.csv": ("fuente", "Fuente de alimentación"),
+    "internal-hard-drive.csv": ("almacenamiento", "Almacenamiento"),
+    "power-supply.csv": ("fuente", "Fuente de alimentación"),
     "case.csv": ("caja", "Caja / chasis"),
-    "cpucooler.csv": ("disipador", "Refrigeración de CPU"),
-    "casefan.csv": ("ventilador", "Ventilador de caja"),
-    "thermalpaste.csv": ("pasta_termica", "Pasta térmica"),
-    "soundcard.csv": ("tarjeta_sonido", "Tarjeta de sonido"),
-    "wirelessnetworkcard.csv": ("tarjeta_red", "Tarjeta de red inalámbrica"),
+    "cpu-cooler.csv": ("disipador", "Refrigeración de CPU"),
+    "case-fan.csv": ("ventilador", "Ventilador de caja"),
+    "thermal-paste.csv": ("pasta_termica", "Pasta térmica"),
+    "sound-card.csv": ("tarjeta_sonido", "Tarjeta de sonido"),
+    "wireless-network-card.csv": ("tarjeta_red", "Tarjeta de red inalámbrica"),
     ## Excluidos por alcance (periféricos / sin datos útiles): webcam.csv, caseaccessory.csv
 }
 CSV_VIDEOJUEGOS = "videogame_requirements.csv"
