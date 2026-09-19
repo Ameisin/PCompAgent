@@ -3,13 +3,13 @@
 De aqui sacamos la respuesta del LLM y los demas stats.
 """
 
+import time
 from pathlib import Path
+
 from context import formatear_contexto
 from generate_rep import generar_respuesta
 from prompt import build_rag_prompt
 from retrieve import recuperar
-import time
-
 
 # ---------------------------------------------------------------------------
 # EXTRAIDO DE LAS FUENTES DE INFROMACION 
@@ -36,7 +36,8 @@ def _extraer_fuentes(chunks: list[dict]) -> list[str]:
 
 # En este metodo sacamos las respuesta de gemini con todos los limitantes que hemos puesto.
 
-def responder(pregunta: str, top_k: int | None = None) -> dict:
+def responder(pregunta: str, top_k: int | None = None, modelo: str | None = None, temperatura: float | None = None, dimension_embedding: int | None = None) -> dict:
+    start_time = int(time.time() * 1000)
     """Pipeline: retrieve → prompt → generate."""
     inicio = time.perf_counter()
 
@@ -53,7 +54,7 @@ def responder(pregunta: str, top_k: int | None = None) -> dict:
     chunks = recuperar(pregunta.strip(), top_k=top_k)
     contexto = formatear_contexto(chunks)
     prompt = build_rag_prompt(contexto, pregunta.strip())
-    respuesta = generar_respuesta(prompt)
+    respuesta = generar_respuesta(prompt, modelo=modelo, temperatura=temperatura)
 
     return {
         "respuesta": respuesta,
@@ -61,5 +62,5 @@ def responder(pregunta: str, top_k: int | None = None) -> dict:
         "chunks": chunks,
         "fuentes": _extraer_fuentes(chunks),
         "error": None,
-        "tiempo_ms": int((time.perf_counter() - inicio) * 1000),
+        "tiempo_ms": int(time.time() * 1000) - start_time
     }

@@ -16,7 +16,7 @@ from config import (
     COLLECTION_NAME,
     EMBED_BATCH_SIZE,
     EMBEDDINGS_JSON,
-    GEMINI_EMBEDDING_MODEL,
+    DEFAULT_GEMINI_EMBEDDING_MODEL,
 )
 
 
@@ -49,7 +49,7 @@ def cargar_embeddings_json() -> tuple[list[dict], str]:
             f"No existe {EMBEDDINGS_JSON}. Ejecuta antes: python main.py --prepare"
         )
     data = json.loads(EMBEDDINGS_JSON.read_text(encoding="utf-8"))
-    modelo = data.get("embedding_model", GEMINI_EMBEDDING_MODEL)
+    modelo = data.get("embedding_model", DEFAULT_GEMINI_EMBEDDING_MODEL)
     return data.get("items", []), modelo
 
 

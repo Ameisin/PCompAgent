@@ -55,11 +55,11 @@ def _embed_gemini_lote(textos: list[str], tipo_tarea: str) -> list[list[float]]:
     for intento in range(1, config.EMBED_MAX_REINTENTOS + 1):
         try:
             result = cliente.models.embed_content(
-                model=config.GEMINI_EMBEDDING_MODEL,
+                model=config.DEFAULT_GEMINI_EMBEDDING_MODEL,
                 contents=cast(Any, textos),
                 config=types.EmbedContentConfig(
                     task_type=tipo_tarea,
-                    output_dimensionality=config.GEMINI_EMBEDDING_DIM,
+                    output_dimensionality=config.DEFAULT_GEMINI_EMBEDDING_DIM,
                 ),
             )
             embeddings = result.embeddings or []
