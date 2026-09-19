@@ -37,8 +37,9 @@ def _extraer_fuentes(chunks: list[dict]) -> list[str]:
 # En este metodo sacamos las respuesta de gemini con todos los limitantes que hemos puesto.
 
 def responder(pregunta: str, top_k: int | None = None) -> dict:
-    start_time = int(time.time() * 1000)
     """Pipeline: retrieve → prompt → generate."""
+    inicio = time.perf_counter()
+
     if not (pregunta or "").strip():
         return {
             "respuesta": "",
@@ -46,6 +47,7 @@ def responder(pregunta: str, top_k: int | None = None) -> dict:
             "chunks": [],
             "fuentes": [],
             "error": "La pregunta no puede estar vacía.",
+            "tiempo_ms": 0,
         }
 
     chunks = recuperar(pregunta.strip(), top_k=top_k)
@@ -59,5 +61,5 @@ def responder(pregunta: str, top_k: int | None = None) -> dict:
         "chunks": chunks,
         "fuentes": _extraer_fuentes(chunks),
         "error": None,
-        "tiempo_ms": time.time() - start_time
+        "tiempo_ms": int((time.perf_counter() - inicio) * 1000),
     }
