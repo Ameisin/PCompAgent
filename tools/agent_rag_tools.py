@@ -39,6 +39,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.prebuilt import create_react_agent
 
+from tools import run_tool as run_complex
+from tools import run_tool as run_simple
+
 # ---------------------------------------------------------------------------
 # Configuracion
 # ---------------------------------------------------------------------------
@@ -52,7 +55,14 @@ MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.30"))   # umbral de abstencion: 
 TRACE_FILE = Path("trace.jsonl")
 
 # ALLOWLIST de tools ejecutables y de dominios externos permitidos
-TOOL_ALLOWLIST = {"rag_ask", "convert_currency", "analyze_pc_image", "calculate_build_total"}
+TOOL_ALLOWLIST = {
+    "rag_ask", "convert_currency", "analyze_pc_image", "calculate_build_total",
+    "check_compatibility", "estimate_power_consumption", "analyze_bottleneck",
+    "compare_components", "split_budget", "recommend_ram_storage", "recommend_monitor",
+    # "search_components",   # <- tu tool de busqueda por precio, cuando la envuelvas igual
+}
+
+
 DOMAIN_ALLOWLIST = {"api.frankfurter.app"}
 
 llm = ChatAnthropic(model=MODEL, temperature=0)
@@ -240,6 +250,64 @@ def calculate_build_total(items: list[dict], budget: float | None = None, vat_pe
     return run_tool("calculate_build_total", {"items": items, "budget": budget, "vat_percent": vat_percent})
     # Mismo patron para el resto: envuelve check_compatibility, estimate_power_consumption, etc.
     # y anade sus nombres a TOOL_ALLOWLIST.
+    
+@tool
+@traced
+def check_compatibility(cpu: dict | None = None, motherboard: dict | None = None,
+                        ram: dict | None = None, gpu: dict | None = None,
+                        case: dict | None = None, psu: dict | None = None,
+                        cooler: dict | None = None, storage: list[dict] | None = None) -> dict:
+    """Verifica la compatibilidad entre componentes de una build. Usala siempre antes de dar una build final."""
+    args = dict(cpu=cpu, motherboard=motherboard, ram=ram, gpu=gpu,
+                case=case, psu=psu, cooler=cooler, storage=storage)
+    return run_complex("check_compatibility", {k: v for k, v in args.items() if v is not None})
+
+
+@tool
+@traced
+def estimate_power_consumption(cpu_tdp_w: float, gpu_tdp_w: float, overclock: bool = False,
+                               current_psu_w: float | None = None) -> dict:
+    """Estima el consumo maximo de la build y recomienda la potencia de la fuente."""
+    args = {"cpu_tdp_w": cpu_tdp_w, "gpu_tdp_w": gpu_tdp_w, "overclock": overclock}
+    if current_psu_w is not None:
+        args["current_psu_w"] = current_psu_w
+    return run_complex("estimate_power_consumption", args)
+
+
+@tool
+@traced
+def analyze_bottleneck(cpu_score: float, gpu_score: float, resolution: str, use_case: str) -> dict:
+    """Analiza el cuello de botella CPU/GPU. resolution: 1080p/1440p/4k. use_case: gaming_competitivo, gaming_aaa, edicion_video, ia, programacion, ofimatica."""
+    return run_complex("analyze_bottleneck", dict(cpu_score=cpu_score, gpu_score=gpu_score,
+                                                  resolution=resolution, use_case=use_case))
+
+
+@tool
+@traced
+def compare_components(category: str, components: list[dict]) -> dict:
+    """Compara 2-5 componentes de la misma categoria (precio, rendimiento, consumo, rendimiento/precio)."""
+    return run_complex("compare_components", {"category": category, "components": components})
+
+
+@tool
+@traced
+def split_budget(total_budget: float, use_case: str) -> dict:
+    """Reparte el presupuesto total entre componentes segun el uso (gaming, edicion_video, programacion, ia, ofimatica, streaming)."""
+    return run_simple("split_budget", {"total_budget": total_budget, "use_case": use_case})
+
+
+@tool
+@traced
+def recommend_ram_storage(use_case: str) -> dict:
+    """Recomienda RAM y almacenamiento minimo y recomendado segun el uso."""
+    return run_simple("recommend_ram_storage", {"use_case": use_case})
+
+
+@tool
+@traced
+def recommend_monitor(use_case: str, gpu_tier: str) -> dict:
+    """Sugiere resolucion y refresco de monitor. gpu_tier: basica, media o alta."""
+    return run_simple("recommend_monitor", {"use_case": use_case, "gpu_tier": gpu_tier})
 
 
 ALL_TOOLS = [rag_ask, convert_currency, analyze_pc_image, calculate_build_total]
@@ -253,6 +321,11 @@ SYSTEM = (
     "Recuerda que precios y disponibilidad cambian: deben confirmarse en tienda."
 )
 
+ALL_TOOLS = [
+    rag_ask, convert_currency, analyze_pc_image, calculate_build_total,
+    check_compatibility, estimate_power_consumption, analyze_bottleneck,
+    compare_components, split_budget, recommend_ram_storage, recommend_monitor,
+]
 
 # ---------------------------------------------------------------------------
 # GRAFO (LangGraph) y CLI
