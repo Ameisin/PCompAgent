@@ -16,17 +16,17 @@ from src import config_grafo
 # CONFIGURACIÓN
 # --------------------------------------------------
 
-st.set_page_config(
-    page_title="Asistente PcComponentes",
-    page_icon="🖥️",
-    layout="wide",
+model_choice = st.sidebar.selectbox(
+    "Modelo de generación",
+    ["gemini-3.5-flash-lite", "gemini-3.1-pro-preview", "gemini-3.8-flash" ],
+    index=0
 )
 
 
-def nueva_conversacion():
-    """Crea un hilo independiente y un estado inicial."""
-    st.session_state.thread_id = nuevo_thread_id()
-    st.session_state.estado = crear_estado("")
+temperature = st.sidebar.slider("Temperatura de generación", 0.0, 1.0, 0.7, 0.1)
+
+
+if st.sidebar.button("🧹 Limpiar historial"):
     st.session_state.messages = []
     st.session_state.debug_error = None
 
@@ -233,74 +233,43 @@ if question:
     with st.chat_message("user"):
         st.markdown(question)
 
-    try:
-        with st.chat_message("assistant"):
-            with st.spinner("Los agentes están trabajando..."):
-                estado_nuevo = procesar_turno(
-                    st.session_state.estado,
-                    question,
-                    st.session_state.thread_id,
-                    max_steps=max_steps,
-                )
+    # Llamar a tu API interna
+    result = responder(question, top_k, model_choice, temperature)
 
-            st.session_state.estado = estado_nuevo
-            st.session_state.debug_error = estado_nuevo.get("error")
+    answer = result["respuesta"]
+    chunks = result["chunks"]
+    num_chunks = len(chunks)
+    time_ms = result["tiempo_ms"]
+    
+    # Mostrar respuesta del agente
+    with st.chat_message("assistant"):
+        st.markdown(answer)
 
-            respuesta = estado_nuevo.get(
-                "respuesta",
-                "El agente no ha devuelto una respuesta.",
-            )
-            st.markdown(respuesta)
+        # Mostrar contexto recuperado
+        st.subheader("🔍 Chunks recuperados:")
+        for i, chunk in enumerate(chunks, start=1):
+            source = chunk.get("metadata", {}).get("source", "?")
+            dist = chunk.get("distance")
+            dist_txt = f"{dist:.4f}" if dist is not None else "n/a"
+            st.markdown(f"**Chunk #{i}** (source: {source}, distance: {dist_txt})")
+            st.markdown(f"```\n{chunk['text']}\n```")
 
-            if estado_nuevo.get("pendiente_hitl", False):
-                st.warning(
-                    "El plan está pendiente de aprobación. "
-                    "Decide desde la barra lateral."
-                )
+        st.subheader("Fuentes de información:")
+        for fuente in result["fuentes"]:
+            st.markdown(f"- {fuente}")
 
-            elif estado_nuevo.get("done", False):
-                st.success("Ejecución finalizada.")
+        # Métricas
+        st.subheader("📊 Métricas")
 
-            if estado_nuevo.get("error"):
-                st.error("Se ha producido un error técnico. Consulta el debug.")
+        metricas = {
+            "Modelo": [model_choice or cfg.DEFAULT_GEMINI_MODEL],
+            "Temperatura": [temperature],
+            "Chunks usados": [num_chunks],
+            "Tiempo (ms)": [time_ms]
+        }
 
-        if respuesta:
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": respuesta,
-            })
+        df_metricas = pd.DataFrame(metricas)
+        st.table(df_metricas)
 
-    except Exception as exc:
-        st.session_state.debug_error = str(exc)
-        st.error(f"Error al ejecutar el agente: {exc}")
-
-
-# --------------------------------------------------
-# MÉTRICAS Y DEBUG
-# --------------------------------------------------
-
-estado = st.session_state.estado
-
-with st.expander("📊 Métricas de la conversación", expanded=False):
-    metricas = pd.DataFrame({
-        "Métrica": [
-            "Turnos registrados",
-            "Tools registradas",
-            "Pasos máximos por especialista",
-            "Pendiente de HITL",
-            "Ejecución terminada",
-        ],
-        "Valor": [
-            len(estado.get("traza", [])),
-            len(estado.get("traza_tools", [])),
-            max_steps,
-            estado.get("pendiente_hitl", False),
-            estado.get("done", False),
-        ],
-    })
-    st.dataframe(metricas, hide_index=True, use_container_width=True)
-
-if st.session_state.debug_error:
-    st.error(f"Último error: {st.session_state.debug_error}")
-
-mostrar_debug()
+    # Guardar respuesta en historial
+    st.session_state.messages.append({"role": "assistant", "content": answer})
