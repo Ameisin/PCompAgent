@@ -1,0 +1,12 @@
+# Dependencias ADICIONALES del grafo multiagente (rama feature/grafo-hitl).
+# Se instalan encima de requirements.txt del RAG (PB1):
+#   python -m pip install -r requirements.txt -r src/requirements_grafo.txt
+#
+# Versiones probadas con Python 3.14.
+langgraph==1.2.16
+langgraph-checkpoint==4.3.0        # MemorySaver
+langchain-google-genai==4.4.2      # ChatGoogleGenerativeAI (bind_tools)
+langchain-core==1.6.12             # @tool, mensajes, InMemoryRateLimiter (requirements.txt fija 1.6.3)
+
+# Opcional: solo para dibujar el grafo en ASCII (app.get_graph().draw_ascii()).
+# grandalf==0.8
