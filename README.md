@@ -13,6 +13,7 @@
 * [Descripción del proyecto](#descripción-del-proyecto)
 * [Características de la aplicación](#Características-de-la-aplicación)
 * [Acceso al proyecto](#acceso-proyecto)
+* [Project Break 2: agente multiagente](#project-break-2-agente-multiagente-langgraph)
 * [Tecnologías utilizadas](#tecnologías-utilizadas)
 * [Desarrolladores del Proyecto](#desarrolladores-del-proyecto)
 * [Conclusión](#conclusión)
@@ -47,11 +48,13 @@ Los datos se han obtenido de la **[página web oficial de Intel](https://www.int
 El modelo LLM podría leer el archivo en formato HTML, pero además de leer la información crucial, leería toda la información del estilo visual, la estructura y semántica compleja, multimedia y recursos emebebidos, scripsts, metadatos y comportamiento. Esa información no es útil, **podría encaminar a errores** y sobre todo, **costar más cantidad de tokens de lectura** de los necesarios. 
 
 ### Interfaz Streamlit (`streamlit run app.py`)
-- Chat con historial de la sesión.
-- Selector de *top-k* en la barra lateral.
-- Visualización de los fragmentos recuperados con fuente y distancia coseno.
-- Lista de fuentes utilizadas en cada respuesta.
-- Tabla de métricas por consulta: modelo, *top-k*, nº de chunks y tiempo de respuesta.
+Desde el PB2, la interfaz es cliente del agente multiagente (ver [Project Break 2](#project-break-2-agente-multiagente-langgraph)):
+- Chat con historial; cada mensaje es un turno del grafo (`procesar_turno`).
+- Barra lateral: `max_steps`, `max_turns`, `thread_id`, botón "Nueva conversación" (nuevo `thread_id`).
+- HITL: cuando hay un plan, el chat se bloquea y aparecen los botones Aprobar y Rechazar (con motivo opcional).
+- Expander de depuración: log del supervisor, traza de tools, traza por turno, checkpoints e indicadores HITL y `done`.
+
+El RAG del PB1 sigue disponible sin interfaz con `python main.py --ask "pregunta"`.
 
 ### CLI (`python main.py`)
 | Comando | Descripción |
@@ -190,6 +193,75 @@ Todos los datos son públicos y se utilizan con fines educativos.
 - ¿Cuántos vatios recomienda la guía para una fuente de alimentación en un PC gaming?
 - ¿Qué requisitos recomendados tiene Cyberpunk 2077?
 - ¿Cuál es la capital de Francia? *(fuera de corpus: el asistente debe abstenerse)*
+
+## Project Break 2: agente multiagente (LangGraph)
+
+El agente es un asesor de compra de PC. A partir del uso y el presupuesto propone una configuración con piezas reales del catálogo, comprueba compatibilidad y precio, y no la da por cerrada hasta que una persona la aprueba (HITL).
+
+Reutilizamos el RAG completo del PB1 (corpus CSV y Markdown, ChromaDB, Gemini y abstención). La tool `RAG_consultar_catalogo` llama a su API interna `logic.responder()`, así que no hay un segundo RAG.
+
+El agente resuelve configuraciones por presupuesto y uso, piezas sueltas, compatibilidad, requisitos de videojuegos, conversión de moneda y lectura de una ficha técnica en imagen. No da precios en tiempo real de tiendas ni hace compras, y si la pregunta no es del dominio lo dice en lugar de inventar.
+
+### Grafo
+
+```text
+START -> supervisor --+-- requisitos ---+
+                      +-- componentes --+--> supervisor -> ...
+                      +-- sintetizar ---+
+                FINISH --+-- aplicar (pausa: la persona aprueba o rechaza) -> END
+                         +-- END (faltan presupuesto o uso: se pregunta al usuario)
+```
+
+- `supervisor`: elige el siguiente rol con el LLM; si la elección no vale, decide una regla en Python. Tiene un tope de vueltas (`MAX_ITER`).
+- `requisitos`: traduce el pedido a requisitos técnicos y a un reparto del presupuesto. Suele usar el RAG, `describir_imagen` y `convertir_divisa`.
+- `componentes`: elige piezas reales y comprueba la compatibilidad (socket, tipo de memoria, formato, fuente). Suele usar `buscar_componentes`, el RAG y `calcular_total_build`.
+- `sintetizar`: junta las notas en un plan con viñetas; después Python suma los precios y los compara con el presupuesto.
+- `aplicar`: solo se ejecuta tras la decisión humana. Pone `done=True` o vacía el plan guardando el motivo del rechazo.
+
+La memoria entre turnos usa `MemorySaver` con `thread_id`. Hay más detalle en [`src/README_GRAFO.md`](src/README_GRAFO.md).
+
+### Tools (allowlist en `src/tools/__init__.py`)
+
+| Categoría | Tool | Qué hace |
+|---|---|---|
+| RAG completo | `RAG_consultar_catalogo` | `responder()` del PB1: respuesta basada en el corpus con sus fuentes, o abstención |
+| Catálogo | `buscar_componentes` | Productos reales del CSV por categoría y rango de precio, con sus especificaciones |
+| API externa | `convertir_divisa` | [Frankfurter](https://frankfurter.dev) (tipos del BCE, sin clave), con `data/divisas_fallback.json` si no hay red |
+| Auxiliares | `calcular_total_build`, `hora_actual` | Suma de la configuración frente al presupuesto, y fecha y hora |
+| Multimodal | `describir_imagen` | Gemini lee `assets/imagen_demo.jpg` (ficha técnica de prueba) u otra imagen de `assets/` |
+
+Cada llamada queda en la traza con `tool`, `args`, `status` (`ok`, `error` o `blocked`) y `preview`. Las tools se pueden probar por separado, sin gastar API, con `python -m src.verificar_grafo`.
+
+### Instalación y ejecución del agente
+
+1. Sigue los pasos de [Entorno virtual](#entorno-virtual) (el `requirements.txt` ya incluye LangGraph) y crea el `.env` a partir de `.env.example`.
+2. El índice del RAG está en el repositorio. Para regenerarlo: `python main.py --prepare` y `python main.py --index --recreate-index`.
+3. Comprobaciones sin API:
+
+   ```bash
+   python -m src.verificar_grafo
+   ```
+
+4. CLI del agente:
+
+   ```bash
+   python -m src.cli                    # demo, con el HITL aprobado automáticamente
+   python -m src.cli --sin-auto-aprobar # se queda en la pausa HITL
+   python -m src.cli --interactivo      # chat; con un plan pendiente: aprobar / rechazar
+   ```
+
+5. Streamlit: `streamlit run app.py`.
+
+### Cómo probar el HITL y la parte multimodal
+
+- HITL: en `--interactivo` o en Streamlit, escribe "Ya tengo un Ryzen con socket AM4, ¿qué placa base y RAM me recomiendas por menos de 150 USD?". Cuando salga el plan, recházalo con el motivo "como mucho 120 USD", pide "Ajústalo a ese límite" y después apruébalo (`done=True`).
+- Multimodal: "Mira la ficha técnica de la imagen y dime qué placa base y RAM compatibles me recomiendas por menos de 150 USD". En la traza aparece `describir_imagen`.
+- Fuera de dominio: "¿Cuál es la capital de Francia?". El agente explica para qué sirve y no inventa.
+
+Los límites los decide Python: `MAX_ITER` (supervisor), `max_steps` (tools por especialista) y `max_turns` (mensajes). Con la API gratuita de Gemini un turno tarda 2-3 minutos, porque espaciamos las llamadas para no recibir errores 429.
+
+Todos los datos son públicos y de uso educativo, la imagen de prueba la hicimos para el proyecto y no hay claves en el repositorio (`.env` está en `.gitignore`).
+
 ## Tecnologías utilizadas
 
 | Área | Tecnología | Uso en el proyecto |
@@ -203,7 +275,9 @@ Todos los datos son públicos y se utilizan con fines educativos.
 | Embeddings alternativos | **sentence-transformers** (opcional) | Embeddings locales sin API |
 | Base vectorial | **ChromaDB** | Índice persistente con distancia coseno y metadatos |
 | Generación | **Gemini** (`gemini-3-flash-preview`) | Redacción de la respuesta anclada al contexto |
-| Interfaz | **Streamlit** | Chat, visualización de chunks y métricas |
+| Agente | **LangGraph** + `langchain-google-genai` | Grafo multiagente, `MemorySaver`, `interrupt_before` (HITL), tools `@tool` |
+| API externa | **Frankfurter** (BCE) | Conversión de moneda con fallback local |
+| Interfaz | **Streamlit** | Chat del agente, botones HITL y depuración |
 | Configuración | **python-dotenv** | Carga de la API key desde `.env` |
 | Utilidades | **BeautifulSoup4** | Conversión de guías HTML a Markdown para ampliar el corpus |
 | Control de versiones | **Git + GitHub** | Ramas `main` / `develop` / `feature/*` y pull requests |

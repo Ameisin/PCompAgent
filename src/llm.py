@@ -2,6 +2,7 @@
 
 import os
 
+from dotenv import load_dotenv
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -29,11 +30,21 @@ def limitador(modelo: str, rpm: float) -> InMemoryRateLimiter:
     return _LIMITADORES[nombre]
 
 
+def exigir_api_key() -> None:
+    """Carga .env y falla con un error claro si no hay GEMINI_API_KEY.
+
+    gemini_auto.configurar_gemini_api_key() la pide con getpass si falta: en
+    Streamlit o en segundo plano eso deja el proceso colgado esperando teclado.
+    """
+    load_dotenv()
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise RuntimeError("Falta GEMINI_API_KEY: copia .env.example como .env y pon tu clave.")
+    configurar_gemini_api_key()
+
+
 def get_llm(temperature: float | None = None) -> ChatGoogleGenerativeAI:
     """Factory del chat model: misma clave (.env) que usa el RAG."""
-    configurar_gemini_api_key()
-    if not os.environ.get("GEMINI_API_KEY"):
-        raise RuntimeError("Falta GEMINI_API_KEY")
+    exigir_api_key()
     return ChatGoogleGenerativeAI(
         model=config_grafo.GEMINI_MODEL,
         google_api_key=os.environ["GEMINI_API_KEY"],

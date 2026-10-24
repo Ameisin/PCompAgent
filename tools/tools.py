@@ -2,10 +2,12 @@ import config as cfg
 from pathlib import Path
 import pandas as pd
 
+from load import SOCKET_POR_MICROARQUITECTURA
+
 MAPEO = {
-    "nombre": "nombre",
+    "nombre": "name",        # columnas reales de los CSV de PCPartPicker
     "tipo": "tipo",          # cpu, gpu, ram...
-    "precio": "precio",
+    "precio": "price",
     "stock": "stock",
     "url": "url",
     "tienda": "tienda",
@@ -113,30 +115,30 @@ _RAM_STORAGE = {
 
 
 
-def cargar_data(carpeta: str = "data") -> pd.DataFrame:
+def cargar_data(carpeta: Path = cfg.CSV_DIR) -> pd.DataFrame:
+    # Solo el catálogo de config.CATEGORIAS_CSV (no videojuegos ni JSON de fallback);
+    # el tipo es el slug de categoría del RAG: cpu, gpu, placa_base, ram...
     frames = []
-    for f in Path(carpeta).rglob("*"):
-        if f.suffix == ".csv":
-            df = pd.read_csv(f)
-        elif f.suffix == ".json":
-            df = pd.read_json(f)
-        else:
+    for archivo, (slug, _nombre) in cfg.CATEGORIAS_CSV.items():
+        f = Path(carpeta) / archivo
+        if not f.exists():
             continue
+        df = pd.read_csv(f)
         df["_archivo"] = f.name
-        # si el nombre del archivo indica el tipo (cpu.csv, gpu.csv...)
-        if MAPEO["tipo"] not in df.columns:
-            df["tipo"] = f.stem
+        df["tipo"] = slug
+        if slug == "cpu":  # el CSV no trae socket: misma tabla derivada que usa el RAG (load.py)
+            df["socket"] = df["microarchitecture"].map(SOCKET_POR_MICROARQUITECTURA)
         frames.append(df)
     df = pd.concat(frames, ignore_index=True)
     return df.rename(columns={v: k for k, v in MAPEO.items() if v in df.columns})
 
 # Cargar UNA vez al arrancar
-DF = cargar_data("data")
+DF = cargar_data()
 DF["precio"] = pd.to_numeric(DF["precio"], errors="coerce")
 DF = DF.dropna(subset=["precio"])          # descarta filas sin precio válido
 DF["_busqueda"] = DF["nombre"].astype(str).str.lower()
 
-def buscar_precio(precio_min :float, precio_max :float , componente :str) -> dict:
+def buscar_precio(componente: str, precio_min: float = 0, precio_max: float | None = None) -> dict:
     
     
     if precio_max is not None and precio_min > precio_max:
@@ -158,9 +160,10 @@ def buscar_precio(precio_min :float, precio_max :float , componente :str) -> dic
                 "rango_real": {"min": float(base.min()), "max": float(base.max())}}
         
     df = df.sort_values("precio")
-    cols = [c for c in ["nombre", "precio", "stock", "tienda", "url"] if c in df.columns]
-    return {"total": len(df),
-            "resultados": df.head(10)[cols].to_dict(orient="records")}
+    cols = [c for c in df.columns if not c.startswith("_") and c != "tipo"]
+    # specs de la categoría (socket, memoria...) sin las columnas vacías de las demás categorías
+    filas = [{k: v for k, v in r.items() if pd.notna(v)} for r in df.head(10)[cols].to_dict(orient="records")]
+    return {"total": len(df), "resultados": filas}
     
     
 def split_budget(total_budget, use_case):
@@ -209,7 +212,7 @@ def recommend_monitor(use_case, gpu_tier):
 
 
 TOOL_FUNCTIONS = {
-    "busca_precio": buscar_precio,
+    "buscar_componentes": buscar_precio,   # mismo nombre que su esquema tool_componentes
     "split_budget": split_budget,
     "calculate_build_total": calculate_build_total,
     "recommend_ram_storage": recommend_ram_storage,

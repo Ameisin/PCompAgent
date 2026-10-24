@@ -1,4 +1,4 @@
-"""CLI del agente multiagente (cliente del grafo) — PCompAgent.
+"""CLI del agente multiagente (cliente del grafo) de PCompAgent.
 
 Se ejecuta desde la raíz del proyecto:
   python -m src.cli                                   # demo (HITL auto-aprobado)

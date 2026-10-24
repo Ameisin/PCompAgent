@@ -38,7 +38,7 @@ RAG_ESPERA_MAX_429_S = 60  ## si aun así llega un 429, se espera lo que pide el
 ## ---------------------------------------------------------------------------
 ## Límites decididos en Python (no por el LLM)
 ## ---------------------------------------------------------------------------
-MAX_STEPS_DEFAULT = 3   ## vueltas modelo ↔ tools DENTRO de un especialista
+MAX_STEPS_DEFAULT = 4   ## vueltas modelo ↔ tools DENTRO de un especialista (CPU → socket → placa → RAM)
 MAX_TURNS_DEFAULT = 6   ## mensajes de usuario por conversación (clientes)
 MAX_ITER = 8            ## vueltas del supervisor por turno (evita bucles de roles)
 LONGITUD_MAX_MENSAJE = config_rag.LONGITUD_MAX_PREGUNTA  ## mismo tope que el RAG
@@ -49,6 +49,16 @@ SUPERVISOR_USA_LLM = os.getenv("AGENTE_SUPERVISOR_LLM", "1").strip() != "0"
 
 ## Cuántas entradas del historial del hilo se pasan a los especialistas.
 MAX_HISTORIAL_PROMPT = 6
+
+## ---------------------------------------------------------------------------
+## Tools (src/tools/)
+## ---------------------------------------------------------------------------
+DIVISAS_URL = "https://api.frankfurter.dev/v1/latest"   ## API pública sin clave (BCE)
+DIVISAS_FALLBACK_PATH = config_rag.DATA_DIR / "divisas_fallback.json"
+HTTP_TIMEOUT_SECONDS = 10
+ASSETS_DIR = config_rag.BASE_DIR / "assets"             ## única carpeta de la que se leen imágenes
+IMAGEN_DEMO_PATH = ASSETS_DIR / "imagen_demo.jpg"
+IMAGEN_MAX_BYTES = 5 * 1024 * 1024
 
 ## ---------------------------------------------------------------------------
 ## Demo CLI

@@ -130,14 +130,47 @@ def _guardrails_ok() -> tuple[bool, str]:
 
 
 def _allowlist_ok() -> tuple[bool, str]:
-    from src.registro_tools import ORIGEN_TOOLS, TOOLS, ejecutar_tool
+    from src.registro_tools import TOOLS, ejecutar_tool
 
     if not TOOLS:
         return False, "TOOLS está vacía"
     bloqueada = ejecutar_tool("borrar_disco", {})
     if "no está permitida" not in bloqueada:
         return False, f"la allowlist no bloquea tools desconocidas: {bloqueada!r}"
-    return True, f"bloquea nombres no registrados (tools de {ORIGEN_TOOLS})"
+    return True, f"bloquea nombres no registrados ({len(TOOLS)} tools permitidas)"
+
+
+def _tools_aisladas_ok() -> tuple[bool, str]:
+    """Las 4 categorías del PB2 funcionan fuera del grafo (sin gastar API)."""
+    from src import config_grafo
+    from src.tools import divisas, ejecutar_tool
+
+    rag = ejecutar_tool("RAG_consultar_catalogo", {"consulta": "  "})
+    if "vacía" not in rag:
+        return False, f"RAG: una consulta vacía debería rechazarse antes de llamar a la API: {rag!r}"
+    catalogo = ejecutar_tool("buscar_componentes", {"componente": "GPU", "precio_max": 300})
+    if "resultados" not in catalogo:
+        return False, f"catálogo: sin resultados para gpu ≤ 300: {catalogo[:120]!r}"
+
+    original = divisas.requests.get
+    divisas.requests.get = lambda *a, **k: (_ for _ in ()).throw(ConnectionError("sin red"))
+    try:
+        api = ejecutar_tool("convertir_divisa", {"cantidad": 100, "origen": "eur", "destino": "USD"})
+    finally:
+        divisas.requests.get = original
+    if "fuente: fallback" not in api:
+        return False, f"API: sin red debería usar el fallback local: {api!r}"
+
+    total = ejecutar_tool("calcular_total_build", {"precios": [129.99, 199.99], "presupuesto": 300})
+    if "'within_budget': False" not in total or not ejecutar_tool("hora_actual", {}).startswith("20"):
+        return False, f"auxiliares incorrectas: {total!r}"
+
+    if not config_grafo.IMAGEN_DEMO_PATH.is_file():
+        return False, "falta assets/imagen_demo.jpg"
+    fuera = ejecutar_tool("describir_imagen", {"ruta": "config.py"})
+    if "solo se pueden leer" not in fuera:
+        return False, f"multimodal: debería bloquear rutas fuera de assets/: {fuera!r}"
+    return True, "RAG, catálogo, API (fallback), auxiliares y multimodal (ruta) OK"
 
 
 def _build_graph_ok() -> tuple[bool, str]:
@@ -211,7 +244,7 @@ def _hitl_rechazar_ok() -> tuple[bool, str]:
 
 
 def _espera_429_ok() -> tuple[bool, str]:
-    from src.tools_provisionales import _segundos_espera_429
+    from src.tools.rag_catalogo import _segundos_espera_429
 
     if _segundos_espera_429(ValueError("timeout de red")) is not None:
         return False, "un error que no es 429 no debería reintentarse"
@@ -299,6 +332,7 @@ def main() -> int:
         ("[guardrails] preferencias / presupuesto", _guardrails_ok),
         ("[sintetizar] _parse_plan", _parse_plan_ok),
         ("[tools] allowlist", _allowlist_ok),
+        ("[tools] 4 categorías fuera del grafo", _tools_aisladas_ok),
         ("[tools] espera ante 429", _espera_429_ok),
         ("[edges] build_graph", _build_graph_ok),
         ("[turno] mensaje vacío", _mensaje_vacio_ok),
