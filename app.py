@@ -16,15 +16,20 @@ from src import config_grafo
 # CONFIGURACIÓN
 # --------------------------------------------------
 
-model_choice = st.sidebar.selectbox(
-    "Modelo de generación",
-    ["gemini-3.5-flash-lite", "gemini-3.1-pro-preview", "gemini-3.8-flash" ],
-    index=0
+from src.agent import (
+    procesar_turno,
+    aprobar_plan,
+    nuevo_thread_id,
+    historial_checkpoints,
 )
+from src.state import crear_estado
+from src import config_grafo
 
 
-temperature = st.sidebar.slider("Temperatura de generación", 0.0, 1.0, 0.7, 0.1)
 
+# --------------------------------------------------
+# ESTADO Y UTILIDADES
+# --------------------------------------------------
 
 if st.sidebar.button("🧹 Limpiar historial"):
     st.session_state.messages = []
@@ -233,43 +238,23 @@ if question:
     with st.chat_message("user"):
         st.markdown(question)
 
-    # Llamar a tu API interna
-    result = responder(question, top_k, model_choice, temperature)
+    # Mismo contrato que la CLI: un mensaje → un turno del grafo (puede acabar en pausa HITL).
+    with st.spinner("Grafo multiagente (supervisor + especialistas + tools)..."):
+        estado_nuevo = procesar_turno(
+            st.session_state.estado,
+            question,
+            st.session_state.thread_id,
+            max_steps=max_steps,
+            max_turns=max_turns,
+        )
 
-    answer = result["respuesta"]
-    chunks = result["chunks"]
-    num_chunks = len(chunks)
-    time_ms = result["tiempo_ms"]
-    
-    # Mostrar respuesta del agente
-    with st.chat_message("assistant"):
-        st.markdown(answer)
+    st.session_state.estado = estado_nuevo
+    st.session_state.debug_error = estado_nuevo.get("error")
+    registrar_respuesta(estado_nuevo)
+    # La sidebar ya se dibujó: rerun para mostrar Aprobar / Rechazar si hay pausa.
+    st.rerun()
 
-        # Mostrar contexto recuperado
-        st.subheader("🔍 Chunks recuperados:")
-        for i, chunk in enumerate(chunks, start=1):
-            source = chunk.get("metadata", {}).get("source", "?")
-            dist = chunk.get("distance")
-            dist_txt = f"{dist:.4f}" if dist is not None else "n/a"
-            st.markdown(f"**Chunk #{i}** (source: {source}, distance: {dist_txt})")
-            st.markdown(f"```\n{chunk['text']}\n```")
+if st.session_state.debug_error:
+    st.error(st.session_state.debug_error)
 
-        st.subheader("Fuentes de información:")
-        for fuente in result["fuentes"]:
-            st.markdown(f"- {fuente}")
-
-        # Métricas
-        st.subheader("📊 Métricas")
-
-        metricas = {
-            "Modelo": [model_choice or cfg.DEFAULT_GEMINI_MODEL],
-            "Temperatura": [temperature],
-            "Chunks usados": [num_chunks],
-            "Tiempo (ms)": [time_ms]
-        }
-
-        df_metricas = pd.DataFrame(metricas)
-        st.table(df_metricas)
-
-    # Guardar respuesta en historial
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+mostrar_debug()
