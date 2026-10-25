@@ -1,5 +1,6 @@
 
 import streamlit as st
+import pandas as pd
 
 from src.agent import (
     procesar_turno,
@@ -10,23 +11,40 @@ from src.agent import (
 from src.state import crear_estado
 from src import config_grafo
 
-st.set_page_config(page_title="Asistente PcComponentes", page_icon="🖥️")
+
+# --------------------------------------------------
+# CONFIGURACIÓN
+# --------------------------------------------------
+
+from src.agent import (
+    procesar_turno,
+    aprobar_plan,
+    nuevo_thread_id,
+    historial_checkpoints,
+)
+from src.state import crear_estado
+from src import config_grafo
+
 
 
 # --------------------------------------------------
 # ESTADO Y UTILIDADES
 # --------------------------------------------------
 
-def nueva_conversacion():
-    """Chat vacío, estado de producto nuevo y nuevo thread_id (nuevo hilo en el MemorySaver)."""
-    st.session_state.thread_id = nuevo_thread_id()
-    st.session_state.estado = crear_estado("")
+if st.sidebar.button("🧹 Limpiar historial"):
     st.session_state.messages = []
     st.session_state.debug_error = None
 
 
 if "thread_id" not in st.session_state:
     nueva_conversacion()
+
+
+# --------------------------------------------------
+# ESTADO Y UTILIDADES
+# --------------------------------------------------
+
+estado = st.session_state.estado
 
 
 def registrar_respuesta(estado_actual):
@@ -112,15 +130,6 @@ with st.sidebar:
         max_value=10,
         value=config_grafo.MAX_STEPS_DEFAULT,
     )
-
-    max_turns = st.slider(
-        "Máximo de mensajes por conversación",
-        min_value=1,
-        max_value=12,
-        value=config_grafo.MAX_TURNS_DEFAULT,
-    )
-
-    st.caption(f"Modelo del agente: `{config_grafo.GEMINI_MODEL}`")
 
     st.divider()
 
