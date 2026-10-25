@@ -102,7 +102,7 @@ def _parse_plan(texto: str) -> list[str]:
     """Extrae viñetas (- / • / *) del texto del plan.
 
     La marca debe ir seguida de un espacio: así un título en negrita Markdown
-    («**Configuración gaming**») no se confunde con una viñeta.
+    ("**Configuración gaming**") no se confunde con una viñeta.
     """
     items: list[str] = []
     for line in (texto or "").splitlines():
@@ -115,7 +115,7 @@ def _parse_plan(texto: str) -> list[str]:
 def _historial_prompt(estado: EstadoGrafo) -> str:
     """Últimas entradas del hilo, para que los especialistas vean el contexto.
 
-    Sin esto, tras un rechazo («más barato, por favor») el siguiente turno
+    Sin esto, tras un rechazo ("más barato, por favor") el siguiente turno
     empezaría de cero aunque el checkpointer recuerde la conversación.
     """
     entradas = (estado.get("historial") or [])[-config_grafo.MAX_HISTORIAL_PROMPT :]
@@ -127,7 +127,7 @@ def _historial_prompt(estado: EstadoGrafo) -> str:
 def _textos_preferencias(estado: EstadoGrafo) -> list[str]:
     """Lo que dijo la persona en el hilo, en orden: sus mensajes y los motivos de rechazo.
 
-    El motivo del HITL («como mucho 550 USD») también es una preferencia y
+    El motivo del HITL ("como mucho 550 USD") también es una preferencia y
     debe pesar en el siguiente plan (y en la suma del presupuesto).
     """
     textos = []
@@ -331,6 +331,9 @@ def nodo_requisitos(estado: EstadoGrafo) -> dict:
         "- Consulta el RAG solo cuando aporte: requisitos de un videojuego concreto o "
         "recomendaciones de las guías de compra (p. ej. potencia de la fuente). Para el "
         "reparto genérico del presupuesto no hace falta.\n"
+        "- Si el usuario habla de una imagen, foto, captura o ficha, léela con la tool de "
+        "imagen. Si da el presupuesto en una moneda distinta de USD, conviértelo con la tool "
+        "de divisas (los precios del catálogo están en USD).\n"
         "- No inventes datos que debería darte una tool; si la tool no tiene la información, dilo.\n"
         "- Devuelve notas breves en español: uso, objetivo de rendimiento, requisitos por "
         "componente (CPU, GPU, RAM, almacenamiento, fuente) y un reparto orientativo del "
@@ -362,10 +365,10 @@ def nodo_componentes(estado: EstadoGrafo) -> dict:
         "(DDR4/DDR5), formato de placa↔caja y potencia de la fuente. No redactas el plan final.\n\n"
         f"Tools disponibles:\n{describir_tools()}\n\n"
         "Reglas:\n"
-        "- Haz UNA consulta al RAG POR CATEGORÍA con su rango de precio, p. ej. "
-        "'tarjeta gráfica por menos de 280 USD' o 'fuente de alimentación de 550 W por menos "
-        "de 70 USD'. Las consultas que mezclan varias categorías no devuelven resultados. "
-        "Puedes pedir varias consultas en la misma respuesta.\n"
+        "- Busca las piezas con buscar_componentes, UNA llamada por categoría con el rango de "
+        "precio del reparto (p. ej. componente='gpu', precio_min=220, precio_max=300). Puedes "
+        "pedir varias búsquedas en la misma respuesta. Usa el RAG solo para dudas de "
+        "compatibilidad o requisitos de juegos.\n"
         "- Encadena la compatibilidad: primero procesador y gráfica; después la placa base "
         "con el socket del procesador elegido y la RAM con el tipo de memoria de esa placa.\n"
         "- Usa SOLO nombres y precios que devuelva la tool. Si una categoría no aparece, "
@@ -473,7 +476,7 @@ def nodo_aplicar(estado: EstadoGrafo) -> dict:
         "respuesta": (
             "Plan rechazado. Dime qué cambiar (presupuesto, uso, alguna pieza…) "
             "y propongo otra configuración."
-            + (f"\n\nHe tomado nota: «{comentario}»." if comentario else "")
+            + (f"\n\nHe tomado nota: '{comentario}'." if comentario else "")
         ),
         "notas_requisitos": "",
         "notas_componentes": "",

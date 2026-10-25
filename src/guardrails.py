@@ -1,6 +1,6 @@
 """Reglas deterministas en Python que acompañan al grafo (no llaman al LLM).
 
-Idea de clase: «el modelo propone, Python decide». Aquí viven tres reglas
+Idea de clase: "el modelo propone, Python decide". Aquí viven tres reglas
 propias del dominio PC que el grafo usa para no depender del LLM en lo crítico:
 
   1. extraer_preferencias: presupuesto, usos y categorías del pedido.
@@ -79,8 +79,8 @@ def extraer_preferencias(textos: list[str]) -> dict:
     """Preferencias del usuario a partir de TODOS sus mensajes del hilo (en orden).
 
     Se mira el historial completo (no solo el último mensaje) para que una
-    respuesta del tipo «unos 800 dólares» complete un pedido anterior. Si el
-    presupuesto aparece varias veces, manda el MÁS RECIENTE («mejor 550 USD»).
+    respuesta del tipo "unos 800 dólares" complete un pedido anterior. Si el
+    presupuesto aparece varias veces, manda el MÁS RECIENTE ("mejor 550 USD").
     """
     texto = " \n".join(t for t in textos if t)
     presupuesto = next(
@@ -104,7 +104,7 @@ def extraer_preferencias(textos: list[str]) -> dict:
 def calcular_faltan_datos(preferencias: dict) -> list[str]:
     """Qué falta para poder recomendar sin inventar.
 
-    - Pieza suelta («¿qué SSD para edición 4K?»): basta con la categoría.
+    - Pieza suelta ("¿qué SSD para edición 4K?"): basta con la categoría.
     - Equipo completo: hacen falta presupuesto y uso.
     """
     if preferencias.get("categorias") and not preferencias.get("pc_completo"):
@@ -125,7 +125,7 @@ def pregunta_aclaratoria(faltan: list[str]) -> str:
     }
     detalle = " y ".join(piezas[f] for f in faltan if f in piezas)
     # Se presenta el alcance del asistente: así también sirve de respuesta
-    # honesta a pedidos fuera de dominio («¿capital de Francia?»).
+    # honesta a pedidos fuera de dominio ("¿capital de Francia?").
     return (
         "Te ayudo a elegir componentes y configuraciones de PC con el catálogo del proyecto. "
         f"Para recomendarte una configuración necesito {detalle}. "
