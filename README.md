@@ -115,6 +115,7 @@ Todos los parámetros ajustables viven en un único fichero: rutas, categorías 
    Contenido de `.env`:
    ```
    GEMINI_API_KEY=tu_clave_aqui
+   API_KEY=una_clave_local_para_la_api
    ```
 
    > El fichero `.env` está en `.gitignore` y nunca debe subirse al repositorio.
@@ -135,6 +136,30 @@ Todos los parámetros ajustables viven en un único fichero: rutas, categorías 
 
    También puedes ejecutar simplemente `python main.py`: si no existe el índice lo construye y a continuación abre Streamlit.
 
+### API REST del agente
+
+La API vive en `api.py` para conservar `app.py` como interfaz Streamlit. Necesita `GEMINI_API_KEY` y `API_KEY` en `.env`; el servidor carga ese fichero al importar la configuración del proyecto.
+
+```powershell
+python -m uvicorn api:app --reload
+```
+
+Abre `http://127.0.0.1:8000/docs` para Swagger. `/health` y `/docs` son públicos; `/ask` y `/approve` requieren `api_key` como query parameter.
+
+| Método y ruta | Auth | Request | Response / código |
+|---|---|---|---|
+| `GET /health` | Pública | — | `200 {"status": "ok"}` |
+| `GET /docs` | Pública | — | `200`, Swagger |
+| `POST /ask?api_key=...` | API key | `{"pregunta": "...", "thread_id": null, "auto_aprobar": true}` | `200 AskOut`: `respuesta`, `thread_id`, `done`, `pendiente_hitl`, `error` |
+| `POST /approve?api_key=...` | API key | `{"thread_id": "...", "aprobado": true}` | `200 AskOut`: `respuesta`, `thread_id`, `done`, `pendiente_hitl`, `error` |
+| `GET /threads/{thread_id}/messages?api_key=...` | API key | — | `200 list[MessageOut]`, orden temporal (Parte 2) |
+
+`thread_id` se puede omitir en `/ask` para iniciar una conversación nueva; la respuesta devuelve el identificador que se debe reutilizar. `auto_aprobar` es `true` por defecto. Con `false`, un plan pausado responde con `pendiente_hitl: true`; envía después `/approve` con `aprobado: true` o `false`. El estado de la API y el checkpoint `MemorySaver` viven en memoria y se pierden al reiniciar el proceso. El historial de PostgreSQL y `GET /threads/{thread_id}/messages` se incorporarán en la Parte 2.
+
+Si `API_KEY` no está configurada, las rutas protegidas devuelven `503`; una clave ausente o incorrecta devuelve `401`, y un body inválido devuelve `422`. En esta Parte 1, Swagger incluye `/health`, `/ask` y `/approve`; el historial se implementará en la Parte 2.
+
+`AskIn`, `AskOut` y `ApproveIn` están definidos como modelos Pydantic y aparecen en Swagger. `MessageOut` define el formato del historial que se conectará a PostgreSQL en la Parte 2.
+
 ### Estructura del proyecto
 
 ```
@@ -143,6 +168,8 @@ PCompAgent/
 ├── requirements.txt
 ├── .env.example                 # plantilla de variables de entorno
 ├── .gitignore
+├── api.py                       # API FastAPI para el agente
+├── schemas.py                   # contrato Pydantic
 ├── config.py                    # configuración centralizada
 ├── main.py                      # CLI: prepare / index / query / ask / eval
 ├── app.py                       # interfaz Streamlit
