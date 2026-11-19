@@ -189,7 +189,7 @@ def aprobar_plan(
 
 
 def nuevo_thread_id() -> str:
-    return f"pc-{uuid.uuid4().hex[:8]}"
+    return f"pc-{uuid.uuid4().hex}"
 
 
 def historial_checkpoints(thread_id: str, limite: int = 20) -> list[dict[str, Any]]:

@@ -4,8 +4,10 @@ import logging
 import os
 import secrets
 from _thread import LockType
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from threading import Lock
-from typing import Any
+from typing import Any, Iterator
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.openapi.utils import get_openapi
@@ -23,7 +25,15 @@ app = FastAPI(
 
 # El checkpoint de LangGraph y este estado de producto viven en memoria del proceso.
 _estados_por_thread: dict[str, dict[str, Any]] = {}
-_locks_por_thread: dict[str, LockType] = {}
+
+
+@dataclass
+class _BloqueoHilo:
+    lock: LockType = field(default_factory=Lock)
+    usuarios: int = 0
+
+
+_locks_por_thread: dict[str, _BloqueoHilo] = {}
 _locks_guard = Lock()
 
 
@@ -41,11 +51,19 @@ class _OcultarQueryEnAccessLog(logging.Filter):
 logging.getLogger("uvicorn.access").addFilter(_OcultarQueryEnAccessLog())
 
 
-def _lock_thread(thread_id: str) -> LockType:
+@contextmanager
+def _lock_thread(thread_id: str) -> Iterator[None]:
     with _locks_guard:
-        if thread_id not in _locks_por_thread:
-            _locks_por_thread[thread_id] = Lock()
-        return _locks_por_thread[thread_id]
+        bloqueo = _locks_por_thread.setdefault(thread_id, _BloqueoHilo())
+        bloqueo.usuarios += 1
+    try:
+        with bloqueo.lock:
+            yield
+    finally:
+        with _locks_guard:
+            bloqueo.usuarios -= 1
+            if bloqueo.usuarios == 0:
+                del _locks_por_thread[thread_id]
 
 
 def _openapi() -> dict[str, Any]:
@@ -118,6 +136,7 @@ def approve(request: ApproveIn) -> AskOut:
         if estado is None:
             estado = crear_estado()
             estado["respuesta"] = "No hay un plan pendiente de aprobación para este thread_id."
+            return _respuesta_api(estado, request.thread_id)
         else:
             estado = aprobar_plan(request.thread_id, request.aprobado, estado)
 

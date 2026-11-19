@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import threading
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from unittest.mock import patch
@@ -10,8 +11,11 @@ from fastapi.testclient import TestClient
 
 import api
 from schemas import ApproveIn, AskIn
+from src import graph
+from src.agent import nuevo_thread_id
 from src.config_grafo import MAX_TURNS_DEFAULT
 from src.state import crear_estado
+from src.verificar_grafo import _LLMFalso
 
 
 class ApiTests(unittest.TestCase):
@@ -24,6 +28,47 @@ class ApiTests(unittest.TestCase):
             response = client.get("/openapi.json")
         self.assertEqual(response.status_code, 200)
         self.assertIn("MessageOut", response.json()["components"]["schemas"])
+
+    def test_invalid_text_is_rejected(self):
+        with patch.dict(os.environ, {"API_KEY": "test-key"}):
+            with TestClient(api.app) as client:
+                for body in (
+                    {"pregunta": "   "},
+                    {"pregunta": "consulta", "thread_id": " "},
+                    {"pregunta": "consulta", "thread_id": "x" * 129},
+                ):
+                    response = client.post("/ask", params={"api_key": "test-key"}, json=body)
+                    self.assertEqual(response.status_code, 422)
+                response = client.post(
+                    "/approve", params={"api_key": "test-key"},
+                    json={"thread_id": " ", "aprobado": True},
+                )
+                self.assertEqual(response.status_code, 422)
+
+    def test_api_key_is_required_and_must_be_configured(self):
+        with TestClient(api.app) as client:
+            with patch.dict(os.environ, {"API_KEY": ""}):
+                response = client.post("/ask", json={"pregunta": "consulta"})
+                self.assertEqual(response.status_code, 503)
+            with patch.dict(os.environ, {"API_KEY": "test-key"}):
+                for params in ({}, {"api_key": "incorrecta"}):
+                    response = client.post("/ask", params=params, json={"pregunta": "consulta"})
+                    self.assertEqual(response.status_code, 401)
+
+    def test_unknown_approval_does_not_create_state_or_keep_lock(self):
+        response = api.approve(ApproveIn(thread_id="desconocido", aprobado=True))
+        self.assertIn("No hay un plan pendiente", response.respuesta)
+        self.assertNotIn("desconocido", api._estados_por_thread)
+        self.assertNotIn("desconocido", api._locks_por_thread)
+
+    def test_lock_is_released_after_exception(self):
+        with patch.object(api, "procesar_turno", side_effect=RuntimeError("fallo")):
+            with self.assertRaises(RuntimeError):
+                api.ask(AskIn(pregunta="consulta", thread_id="hilo"))
+        self.assertNotIn("hilo", api._locks_por_thread)
+
+    def test_generated_id_uses_full_uuid(self):
+        self.assertRegex(nuevo_thread_id(), r"^pc-[0-9a-f]{32}$")
 
     def test_access_log_omits_query(self):
         logger = logging.getLogger("uvicorn.access")
@@ -110,6 +155,7 @@ class ApiTests(unittest.TestCase):
                     self.assertTrue(turno.result(timeout=5).pendiente_hitl)
                     self.assertTrue(decision.result(timeout=5).done)
                     mock_approve.assert_called_once()
+                    self.assertNotIn("hilo", api._locks_por_thread)
 
     def test_different_threads_can_run_concurrently(self):
         first_started = threading.Event()
@@ -132,6 +178,53 @@ class ApiTests(unittest.TestCase):
                 finally:
                     release_first.set()
                 self.assertEqual(primero.result(timeout=5).respuesta, "primero")
+
+    def test_graph_is_built_once_for_simultaneous_threads(self):
+        barrier = threading.Barrier(2)
+        built = object()
+
+        def build():
+            time.sleep(0.1)
+            return built
+
+        def get_app():
+            barrier.wait(timeout=5)
+            return graph.get_app()
+
+        with patch.object(graph, "_APP", None), patch.object(graph, "build_graph", side_effect=build) as builder:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                first = executor.submit(get_app)
+                second = executor.submit(get_app)
+                self.assertIs(first.result(timeout=5), built)
+                self.assertIs(second.result(timeout=5), built)
+            builder.assert_called_once_with()
+
+    def test_http_hitl_with_real_graph_and_simulated_llm(self):
+        with patch.dict(os.environ, {"API_KEY": "test-key"}):
+            with patch.object(graph, "_APP", None):
+                with patch.object(graph, "get_llm", return_value=_LLMFalso()):
+                    with patch.object(api.config_grafo, "SUPERVISOR_USA_LLM", True):
+                        with TestClient(api.app) as client:
+                            for approved in (False, True):
+                                response = client.post(
+                                    "/ask", params={"api_key": "test-key"},
+                                    json={
+                                        "pregunta": "PC gaming para 1080p con presupuesto de $700",
+                                        "auto_aprobar": False,
+                                    },
+                                )
+                                self.assertEqual(response.status_code, 200)
+                                result = response.json()
+                                self.assertIsNone(result["error"])
+                                self.assertTrue(result["pendiente_hitl"])
+                                decision = client.post(
+                                    "/approve", params={"api_key": "test-key"},
+                                    json={"thread_id": result["thread_id"], "aprobado": approved},
+                                )
+                                self.assertEqual(decision.status_code, 200)
+                                self.assertFalse(decision.json()["pendiente_hitl"])
+                                self.assertEqual(decision.json()["done"], approved)
+                                self.assertIsNone(decision.json()["error"])
 
 
 if __name__ == "__main__":
