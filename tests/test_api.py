@@ -45,6 +45,23 @@ class ApiTests(unittest.TestCase):
                 )
                 self.assertEqual(response.status_code, 422)
 
+    def test_decisions_require_boolean_values(self):
+        with patch.dict(os.environ, {"API_KEY": "test-key"}):
+            with patch.object(api, "procesar_turno", return_value=crear_estado()):
+                with TestClient(api.app) as client:
+                    for value in ("true", "false", 1, 0):
+                        with self.subTest(value=value):
+                            response = client.post(
+                                "/ask", params={"api_key": "test-key"},
+                                json={"pregunta": "consulta", "auto_aprobar": value},
+                            )
+                            self.assertEqual(response.status_code, 422)
+                            response = client.post(
+                                "/approve", params={"api_key": "test-key"},
+                                json={"thread_id": "hilo", "aprobado": value},
+                            )
+                            self.assertEqual(response.status_code, 422)
+
     def test_api_key_is_required_and_must_be_configured(self):
         with TestClient(api.app) as client:
             with patch.dict(os.environ, {"API_KEY": ""}):
@@ -115,6 +132,25 @@ class ApiTests(unittest.TestCase):
         estado = crear_estado("consulta")
         estado["traza"] = [{"mensaje": "consulta"} for _ in range(MAX_TURNS_DEFAULT)]
         api._estados_por_thread["hilo"] = estado
+        with patch("src.agent.hay_interrupt") as hay_interrupt:
+            response = api.ask(AskIn(pregunta="otra consulta", thread_id="hilo"))
+        self.assertIn("max_turns", response.respuesta)
+        hay_interrupt.assert_not_called()
+
+    def test_turn_limit_counts_user_messages_starting_with_hitl(self):
+        estado = crear_estado("consulta")
+        estado["traza"] = [
+            {"mensaje": "HITL:rechazar", "status": "ok"}
+            for _ in range(MAX_TURNS_DEFAULT - 1)
+        ]
+        estado["traza"].append({"mensaje": "HITL:rechazar", "comentario": ""})
+        api._estados_por_thread["hilo"] = estado
+        with patch("src.agent.hay_interrupt", return_value=True) as hay_interrupt:
+            response = api.ask(AskIn(pregunta="consulta", thread_id="hilo"))
+        self.assertIn("pendiente", response.respuesta)
+        hay_interrupt.assert_called_once()
+
+        estado["traza"].append({"mensaje": "HITL:aprobar", "status": "ok"})
         with patch("src.agent.hay_interrupt") as hay_interrupt:
             response = api.ask(AskIn(pregunta="otra consulta", thread_id="hilo"))
         self.assertIn("max_turns", response.respuesta)

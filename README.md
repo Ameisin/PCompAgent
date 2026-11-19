@@ -156,7 +156,7 @@ Abre `http://127.0.0.1:8000/docs` para Swagger. `/health` y `/docs` son público
 
 `thread_id` se puede omitir en `/ask` para iniciar una conversación nueva; la respuesta devuelve el identificador que se debe reutilizar. `auto_aprobar` es `true` por defecto. Con `false`, un plan pausado responde con `pendiente_hitl: true`; envía después `/approve` con `aprobado: true` o `false`. El límite de mensajes por conversación es `MAX_TURNS_DEFAULT`, definido en `src/config_grafo.py`. Las peticiones del mismo hilo se procesan de una en una. El estado de la API y el checkpoint `MemorySaver` viven en memoria y se pierden al reiniciar el proceso; usa un solo proceso de Uvicorn, ya que cada proceso tendría su propia memoria. El historial de PostgreSQL y `GET /threads/{thread_id}/messages` se incorporarán en la Parte 2.
 
-La pregunta no puede estar vacía ni contener solo espacios y admite hasta 500 caracteres. Los identificadores de hilo admiten hasta 128 caracteres y tampoco pueden estar vacíos ni contener solo espacios.
+La pregunta no puede estar vacía ni contener solo espacios y admite hasta 500 caracteres. Los identificadores de hilo admiten hasta 128 caracteres y tampoco pueden estar vacíos ni contener solo espacios. `auto_aprobar` y `aprobado` deben ser booleanos JSON (`true` o `false`), no cadenas ni números.
 
 Si `API_KEY` no está configurada, las rutas protegidas devuelven `503`; una clave ausente o incorrecta devuelve `401`, y un body inválido devuelve `422`. En esta Parte 1, Swagger incluye `/health`, `/ask` y `/approve`; el historial se implementará en la Parte 2.
 
