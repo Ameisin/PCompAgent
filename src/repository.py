@@ -49,3 +49,21 @@ def obtener_mensajes(thread_id: str):
         mensajes = session.exec(consulta).all()
 
         return mensajes
+
+
+def obtener_historial_api(thread_id: str) -> list[dict]:
+    """
+    Recupera los mensajes de PostgreSQL y los convierte
+    al formato esperado por MessageOut.
+    """
+
+    mensajes = obtener_mensajes(thread_id)
+
+    return [
+        {
+            "role": mensaje.role,
+            "content": mensaje.content,
+            "created_at": mensaje.created_at,
+        }
+        for mensaje in mensajes
+    ]
