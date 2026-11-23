@@ -18,6 +18,10 @@ from src.agent import aprobar_plan, nuevo_thread_id, procesar_turno
 from src.state import crear_estado
 from src.repository import guardar_turno, obtener_historial_api
 
+from sqlalchemy import text
+from sqlmodel import Session
+from src.db import engine
+
 app = FastAPI(
     title="Asistente PcComponentes API",
     description="API REST para el agente multiagente de PcComponentes.",
@@ -107,9 +111,27 @@ def _respuesta_api(estado: dict[str, Any], thread_id: str) -> AskOut:
     )
 
 
+
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health():
+    try:
+        with Session(engine) as session:
+            session.exec(text("SELECT 1")).first()
+
+        return {
+            "status": "ok",
+            "storage": "postgresql",
+            "database": "connected"
+        }
+
+    except Exception:
+        logging.exception("Error al comprobar PostgreSQL")
+
+        raise HTTPException(
+            status_code=503,
+            detail="PostgreSQL no disponible"
+        )
+
 
 
 

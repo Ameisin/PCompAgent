@@ -7,18 +7,32 @@ from sqlmodel import SQLModel, Session, create_engine
 # Cargar las variables del archivo .env
 load_dotenv()
 
-# Obtener la conexión a PostgreSQL
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("No se ha encontrado DATABASE_URL en el archivo .env")
+    raise ValueError("No se ha encontrado DATABASE_URL")
 
-# Crear el motor de conexión
+# Compatibilidad con las URLs de PostgreSQL de Render.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql+psycopg://",
+        1
+    )
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1
+    )
+
 engine = create_engine(
     DATABASE_URL,
     echo=False,
     pool_pre_ping=True
 )
+
 
 
 def get_session():
