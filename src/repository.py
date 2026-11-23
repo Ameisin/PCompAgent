@@ -67,3 +67,59 @@ def obtener_historial_api(thread_id: str) -> list[dict]:
         }
         for mensaje in mensajes
     ]
+
+
+def guardar_turno(
+    thread_id: str,
+    pregunta: str,
+    respuesta: str
+) -> None:
+    """
+    Guarda una pregunta y su respuesta en una sola transacción.
+    Si ocurre un error, no se guarda ninguno de los dos mensajes.
+    """
+
+    if not thread_id or not thread_id.strip():
+        raise ValueError("El thread_id no puede estar vacío")
+
+    if not pregunta or not pregunta.strip():
+        raise ValueError("La pregunta no puede estar vacía")
+
+    if not respuesta or not respuesta.strip():
+        raise ValueError("La respuesta no puede estar vacía")
+
+    with Session(engine) as session:
+        try:
+            # Buscar la conversación
+            conversacion = session.get(Conversation, thread_id)
+
+            # Crear la conversación si todavía no existe
+            if conversacion is None:
+                session.add(Conversation(thread_id=thread_id))
+                session.flush()
+
+            # Preparar ambos mensajes
+            mensaje_usuario = Message(
+                thread_id=thread_id,
+                role="user",
+                content=pregunta
+            )
+
+            mensaje_asistente = Message(
+                thread_id=thread_id,
+                role="assistant",
+                content=respuesta
+            )
+
+            # Añadir los dos mensajes
+            session.add_all([
+                mensaje_usuario,
+                mensaje_asistente
+            ])
+
+            # Confirmar ambos mensajes a la vez
+            session.commit()
+
+        except Exception:
+            session.rollback()
+            raise

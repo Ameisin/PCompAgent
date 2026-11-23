@@ -89,3 +89,20 @@ def test_obtener_historial_api(db_pruebas):
     assert historial[1]["content"] == "¿Cuál es tu presupuesto?"
 
     assert isinstance(historial[0]["created_at"], datetime)
+
+def test_guardar_turno(db_pruebas):
+    repository.guardar_turno(
+        thread_id="thread-turno",
+        pregunta="Quiero montar un PC gaming",
+        respuesta="¿Cuál es tu presupuesto?"
+    )
+
+    mensajes = repository.obtener_mensajes("thread-turno")
+
+    assert len(mensajes) == 2
+
+    assert mensajes[0].role == "user"
+    assert mensajes[0].content == "Quiero montar un PC gaming"
+
+    assert mensajes[1].role == "assistant"
+    assert mensajes[1].content == "¿Cuál es tu presupuesto?"
