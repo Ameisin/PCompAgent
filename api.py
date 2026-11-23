@@ -159,20 +159,51 @@ def ask(request: AskIn) -> AskOut:
         return _respuesta_api(estado, thread_id)
 
 
+
 @app.post("/approve", response_model=AskOut, dependencies=[Depends(requerir_api_key)])
 def approve(request: ApproveIn) -> AskOut:
     with _lock_thread(request.thread_id):
         estado = _estados_por_thread.get(request.thread_id)
+
         if estado is None:
             estado = crear_estado()
-            estado["respuesta"] = "No hay un plan pendiente de aprobación para este thread_id."
+            estado["respuesta"] = (
+                "No hay un plan pendiente de aprobación para este thread_id."
+            )
             return _respuesta_api(estado, request.thread_id)
-        else:
-            estado = aprobar_plan(request.thread_id, request.aprobado, estado)
+
+        # Solo registrar una decisión cuando realmente había
+        # una aprobación pendiente.
+        habia_hitl_pendiente = bool(estado.get("pendiente_hitl"))
+
+        estado = aprobar_plan(
+            request.thread_id,
+            request.aprobado,
+            estado
+        )
 
         estado["thread_id"] = request.thread_id
         _estados_por_thread[request.thread_id] = estado
+
+        # Registrar la decisión y la respuesta del agente.
+        if habia_hitl_pendiente and not estado.get("error"):
+            decision = (
+                "Aprobar plan"
+                if request.aprobado
+                else "Rechazar plan"
+            )
+
+            respuesta = str(estado.get("respuesta") or "").strip()
+
+            if respuesta:
+                guardar_turno(
+                    thread_id=request.thread_id,
+                    pregunta=decision,
+                    respuesta=respuesta
+                )
+
         return _respuesta_api(estado, request.thread_id)
+
 
 @app.get(
     "/threads/{thread_id}/messages",
