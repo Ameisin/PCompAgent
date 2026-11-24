@@ -1,0 +1,33 @@
+# Secretos y entornos locales: nunca dentro de la imagen
+.env
+.env.*
+!.env.example
+.venv
+venv
+
+# Git y cachés
+.git
+.gitignore
+.github
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+
+# Material local del equipo que no forma parte del servicio
+CONTEXTO/
+PARTE4/
+
+# Artefactos del pipeline offline (embeddings.json, 42 MB).
+# El índice ya construido viaja en chroma/, que sí entra en la imagen.
+output/
+
+# Lo que no hace falta para servir la API
+entregables/
+tests/
+front/
+README.md
+*.db

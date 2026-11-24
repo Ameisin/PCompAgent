@@ -76,8 +76,12 @@ def procesar_turno(
             estado, f"El mensaje es demasiado largo (máx. {config_grafo.LONGITUD_MAX_MENSAJE} caracteres)."
         )
 
-    # Límites y guardas decididos en Python, antes de gastar llamadas al modelo.
-    turnos_usuario = sum(1 for t in estado.get("traza") or [] if not str(t.get("mensaje", "")).startswith("HITL:"))
+    # Las decisiones HITL llevan comentario en la traza, incluso si está vacío.
+    turnos_usuario = sum(
+        1
+        for t in estado.get("traza") or []
+        if not (t.get("mensaje") in ("HITL:aprobar", "HITL:rechazar") and "comentario" in t)
+    )
     if max_turns is not None and turnos_usuario >= max_turns:
         return _respuesta_sin_invocar(
             estado, f"Se ha alcanzado max_turns ({max_turns}). Empieza una nueva conversación."
@@ -189,7 +193,7 @@ def aprobar_plan(
 
 
 def nuevo_thread_id() -> str:
-    return f"pc-{uuid.uuid4().hex[:8]}"
+    return f"pc-{uuid.uuid4().hex}"
 
 
 def historial_checkpoints(thread_id: str, limite: int = 20) -> list[dict[str, Any]]:
