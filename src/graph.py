@@ -19,6 +19,7 @@ Stack: LangChain (ChatGoogleGenerativeAI + @tool) + LangGraph (MemorySaver).
 """
 
 import re
+from threading import Lock
 from typing import Annotated, Any, Literal, TypedDict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -553,6 +554,7 @@ def build_graph():
 
 
 _APP = None
+_APP_LOCK = Lock()
 
 
 def get_app():
@@ -563,7 +565,9 @@ def get_app():
     """
     global _APP
     if _APP is None:
-        _APP = build_graph()
+        with _APP_LOCK:
+            if _APP is None:
+                _APP = build_graph()
     return _APP
 
 
