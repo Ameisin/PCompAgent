@@ -139,3 +139,6 @@ websockets==16.1.1
 xxhash==4.0.1
 yarl==1.25.1
 zstandard==0.25.0
+sqlmodel==0.0.50
+psycopg[binary]==3.3.9
+pytest==9.2.0
